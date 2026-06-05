@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_primary">
+
+    <LinearLayout
+        android:id="@+id/layoutHeader"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="12dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:letterSpacing="0.08"
+                android:text="Galeri"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Temizleyici"
+                android:textColor="@color/text_primary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/btnMainHome"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_button_circle"
+            android:gravity="center"
+            android:text="⌂"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/btnMainGuide"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_button_circle"
+            android:gravity="center"
+            android:text="?"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnMainStats"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_button_circle"
+            android:gravity="center"
+            android:text="↗"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp" />
+
+        <LinearLayout
+            android:id="@+id/layoutCounter"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_button_circle"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvPhotoCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="0"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="kaldı"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutStats"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutHeader">
+
+        <TextView
+            android:id="@+id/tvDeletedCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:alpha="0.88"
+            android:text="Silinen: 0"
+            android:textColor="@color/accent_delete"
+            android:textSize="12sp" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="12dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:background="@color/bg_surface" />
+
+        <TextView
+            android:id="@+id/tvKeptCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:alpha="0.88"
+            android:text="Saklanan: 0"
+            android:textColor="@color/accent_keep"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:layout_width="0dp"
+        android:layout_height="3dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:max="100"
+        android:progress="0"
+        android:progressBackgroundTint="@color/bg_surface"
+        android:progressTint="@color/accent_keep"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutStats" />
+
+    <com.example.myapplication.SwipeCardView
+        android:id="@+id/swipeCardView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="18dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="18dp"
+        app:layout_constraintBottom_toTopOf="@id/layoutButtons"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progressBar" />
+
+    <LinearLayout
+        android:id="@+id/layoutEmpty"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/layoutButtons"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progressBar">
+
+        <FrameLayout
+            android:id="@+id/layoutEmptyIcon"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/bg_empty_state">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="🖼"
+                android:textSize="38sp" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tvEmptyTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="Galeriye Erişim Gerekli"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvEmptyDesc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="28dp"
+            android:gravity="center"
+            android:lineSpacingExtra="4dp"
+            android:text="Fotoğraflarını gözden geçirip gereksizleri silmek için galeriye erişim izni ver."
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <ScrollView
+            android:id="@+id/scrollDeletePreview"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginBottom="18dp"
+            android:layout_weight="1"
+            android:fillViewport="false"
+            android:visibility="gone">
+
+            <GridLayout
+                android:id="@+id/gridDeletePreview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:alignmentMode="alignMargins"
+                android:columnCount="3"
+                android:useDefaultMargins="true" />
+        </ScrollView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGrantPermission"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/accent_keep"
+            android:paddingStart="32dp"
+            android:paddingEnd="32dp"
+            android:text="İzin Ver"
+            android:textColor="@color/bg_primary"
+            android:textStyle="bold"
+            app:cornerRadius="28dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSecondaryAction"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:paddingStart="28dp"
+            android:paddingEnd="28dp"
+            android:text="Düzenlemeye Devam Et"
+            android:textColor="@color/text_primary"
+            android:visibility="gone"
+            app:cornerRadius="28dp"
+            app:strokeColor="@color/bg_surface" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutButtons"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingTop="8dp"
+        android:paddingBottom="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:id="@+id/btnDelete"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:background="@drawable/bg_button_circle"
+            android:gravity="center"
+            android:text="✕"
+            android:textColor="@color/accent_delete"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+
+        <Space
+            android:layout_width="36dp"
+            android:layout_height="1dp" />
+
+        <TextView
+            android:id="@+id/btnUndo"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_button_circle"
+            android:gravity="center"
+            android:text="↩"
+            android:textColor="@color/text_secondary"
+            android:textSize="24sp" />
+
+        <Space
+            android:layout_width="36dp"
+            android:layout_height="1dp" />
+
+        <TextView
+            android:id="@+id/btnKeep"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:background="@drawable/bg_button_circle"
+            android:gravity="center"
+            android:text="✓"
+            android:textColor="@color/accent_keep"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

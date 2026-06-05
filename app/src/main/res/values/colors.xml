@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="bg_primary">#0D0D0F</color>
+    <color name="bg_card">#1A1A1F</color>
+    <color name="bg_surface">#252528</color>
+    <color name="accent_keep">#00E676</color>
+    <color name="accent_delete">#FF1744</color>
+    <color name="text_primary">#F5F5F7</color>
+    <color name="text_secondary">#8E8E93</color>
+    <color name="overlay_keep">#4D00E676</color>
+    <color name="overlay_delete">#4DFF1744</color>
+    <color name="button_bg">#252528</color>
+</resources>

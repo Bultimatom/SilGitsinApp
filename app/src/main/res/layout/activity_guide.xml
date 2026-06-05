@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/guideRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_primary"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/btnGuideBack"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_button_circle"
+            android:gravity="center"
+            android:text="‹"
+            android:textColor="@color/text_primary"
+            android:textSize="30sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Nasıl Kullanılır?"
+            android:textColor="@color/text_primary"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_info_panel"
+            android:lineSpacingExtra="6dp"
+            android:padding="18dp"
+            android:text="1. Galeri iznini ver.\n2. Gereksiz fotoğrafı sola kaydır veya çarpıya bas.\n3. Saklamak istediğin fotoğrafı sağa kaydır veya onaya bas.\n4. Yanlış karar verdiysen orta geri al tuşunu kullan.\n5. Tur bitince seçilen fotoğrafları tek sistem onayıyla sil."
+            android:textColor="@color/text_primary"
+            android:textSize="15sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_warning_panel"
+            android:lineSpacingExtra="4dp"
+            android:padding="18dp"
+            android:text="Android güvenlik nedeniyle gerçek silme işleminde sistem onayı ister. Bu uygulama fotoğrafları önce silme listesine alır; tur bitene kadar geri alabilir, en sonda toplu silebilirsin."
+            android:textColor="@color/text_primary"
+            android:textSize="14sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGuideStart"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="28dp"
+            android:backgroundTint="@color/accent_keep"
+            android:text="Kaydırmaya Başla"
+            android:textColor="@color/bg_primary"
+            android:textStyle="bold"
+            app:cornerRadius="14dp" />
+    </LinearLayout>
+</ScrollView>
