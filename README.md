@@ -1,10 +1,6 @@
 # Sil Gitsin
 
 <p align="center">
-  <img src="assets/omer-uzunsoy-btv-logo.jpg" alt="Ömer Uzunsoy BTV" width="160" />
-</p>
-
-<p align="center">
   <strong>Galerini kart kart gez, kararını kaydırarak ver, gereksiz medyaları Android onayıyla güvenle temizle.</strong>
 </p>
 
