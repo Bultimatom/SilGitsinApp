@@ -1,6 +1,6 @@
-# Kaydır Gitsin
+# Sil Gitsin
 
-Kaydır Gitsin, galerini Tinder tarzı kartlarla hızlıca temizlemek için geliştirilmiş açık kaynak Android uygulamasıdır. Fotoğrafları tek tek karar yorgunluğuna sokmadan ayırırsın: sağa kaydır tut, sola kaydır silme listesine gönder, en sonda Android'in resmi onayıyla temizle.
+Sil Gitsin, galerini Tinder tarzı kartlarla hızlıca temizlemek için geliştirilmiş açık kaynak Android uygulamasıdır. Fotoğrafları tek tek karar yorgunluğuna sokmadan ayırırsın: sağa kaydır tut, sola kaydır silme listesine gönder, en sonda Android'in resmi onayıyla temizle.
 
 ## Neden Güvenilir?
 
@@ -9,7 +9,7 @@ Kaydır Gitsin, galerini Tinder tarzı kartlarla hızlıca temizlemek için geli
 - Gerçek silme, yalnızca seçilenleri gördükten sonra Android'in sistem onayıyla gerçekleşir.
 - Proje açık kaynaklıdır; kodu herkes inceleyebilir.
 
-Açık kaynak deposu: [Bultimatom/KaydirGitsinApp](https://github.com/Bultimatom/KaydirGitsinApp)
+Açık kaynak deposu: [Bultimatom/SilGitsinApp](https://github.com/Bultimatom/SilGitsinApp)
 
 ## Özellikler
 
@@ -41,8 +41,8 @@ Açık kaynak deposu: [Bultimatom/KaydirGitsinApp](https://github.com/Bultimatom
 Projeyi Android Studio ile aç:
 
 ```bash
-git clone https://github.com/Bultimatom/KaydirGitsinApp.git
-cd KaydirGitsinApp/app
+git clone https://github.com/Bultimatom/SilGitsinApp.git
+cd SilGitsinApp/app
 ```
 
 Debug APK oluştur:
@@ -74,7 +74,7 @@ app/build/outputs/apk/debug/
 
 ## Gizlilik Yaklaşımı
 
-Kaydır Gitsin, galeri temizliği için gereken medya erişimini cihaz üzerinde kullanır. Uygulama bir bulut senkronizasyonu, hesap sistemi veya uzaktan veri işleme mekanizması üzerine kurulmamıştır. Silme gibi hassas işlemler Android'in kendi güvenlik/onay akışıyla yapılır.
+Sil Gitsin, galeri temizliği için gereken medya erişimini cihaz üzerinde kullanır. Uygulama bir bulut senkronizasyonu, hesap sistemi veya uzaktan veri işleme mekanizması üzerine kurulmamıştır. Silme gibi hassas işlemler Android'in kendi güvenlik/onay akışıyla yapılır.
 
 ## Lisans
 

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Kaydır Gitsin</string>
+    <string name="app_name">Sil Gitsin</string>
     <string name="permission_needed">Galeri izni gerekli</string>
     <string name="grant_permission">İzin Ver</string>
     <string name="all_done">Tüm fotoğraflar incelendi!</string>

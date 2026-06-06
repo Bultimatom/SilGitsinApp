@@ -1393,7 +1393,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         sourceButton.setTypeface(sourceButton.getTypeface(), android.graphics.Typeface.BOLD);
         sourceButton.setBackgroundResource(R.drawable.bg_action_ghost);
         sourceButton.setOnClickListener(view -> {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Bultimatom/KaydirGitsinApp"));
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Bultimatom/SilGitsinApp"));
             startActivity(intent);
         });
         LinearLayout.LayoutParams sourceParams = new LinearLayout.LayoutParams(

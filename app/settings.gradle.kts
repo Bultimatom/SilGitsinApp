@@ -17,4 +17,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "KaydirGitsin"
+rootProject.name = "SilGitsin"

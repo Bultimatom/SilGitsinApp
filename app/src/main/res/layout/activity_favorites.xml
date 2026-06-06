@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/favoritesRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -23,7 +24,7 @@
             android:padding="10dp"
             android:scaleType="centerInside"
             android:src="@drawable/ic_back_custom"
-            android:tint="@color/text_primary" />
+            app:tint="@color/text_primary" />
 
         <ImageView
             android:layout_width="42dp"
@@ -31,7 +32,7 @@
             android:layout_marginStart="12dp"
             android:contentDescription="@string/app_name"
             android:scaleType="fitCenter"
-            android:src="@drawable/kaydir_gitsin_logo_clean_small" />
+            android:src="@drawable/sil_gitsin_logo_clean_small" />
 
         <TextView
             android:layout_width="0dp"

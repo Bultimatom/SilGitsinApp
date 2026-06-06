@@ -15,9 +15,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/kaydir_gitsin_logo_clean"
+        android:icon="@mipmap/sil_gitsin_logo_clean"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/kaydir_gitsin_logo_clean"
+        android:roundIcon="@mipmap/sil_gitsin_logo_clean"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication"
         tools:targetApi="31">

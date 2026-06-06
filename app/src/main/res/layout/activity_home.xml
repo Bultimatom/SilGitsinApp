@@ -37,13 +37,13 @@
             android:layout_height="86dp"
             android:contentDescription="@string/app_name"
             android:scaleType="fitCenter"
-            android:src="@drawable/kaydir_gitsin_logo_clean_small" />
+            android:src="@drawable/sil_gitsin_logo_clean_small" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="KAYDIR GİTSİN"
+            android:text="SİL GİTSİN"
             android:textColor="@color/accent_keep"
             android:textSize="12sp"
             android:textStyle="bold" />

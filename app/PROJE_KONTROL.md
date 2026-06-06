@@ -1,4 +1,4 @@
-# Kaydır Gitsin Proje Kontrolü
+# Sil Gitsin Proje Kontrolü
 
 ## Hocanin istedikleri
 
