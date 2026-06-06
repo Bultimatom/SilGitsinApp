@@ -1,4 +1,4 @@
-package com.example.myapplication;
+package com.bultimatom.silgitsin;
 
 import android.content.Intent;
 import android.os.Bundle;

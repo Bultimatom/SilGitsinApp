@@ -1,4 +1,4 @@
-package com.example.myapplication;
+package com.bultimatom.silgitsin;
 
 import android.content.Context;
 import android.content.SharedPreferences;
