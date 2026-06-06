@@ -4,19 +4,29 @@ import android.Manifest;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.media.MediaMetadataRetriever;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.StatFs;
+import android.provider.Settings;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.View;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
@@ -27,9 +37,13 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.android.material.switchmaterial.SwitchMaterial;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements SwipeCardView.SwipeListener {
     private MediaRepository mediaRepository;
@@ -39,25 +53,59 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private TextView tvPhotoCount;
     private TextView tvDeletedCount;
     private TextView tvKeptCount;
+    private TextView tvSavedMb;
+    private TextView tvScoreCaption;
+    private TextView tvStreakLabel;
+    private TextView tvHintTitle;
+    private TextView tvHintBody;
+    private TextView tvNoticeIcon;
+    private TextView tvNoticeMessage;
     private TextView tvEmptyTitle;
     private TextView tvEmptyDesc;
     private View layoutEmptyIcon;
     private TextView btnGrantPermission;
-    private TextView btnDelete;
-    private TextView btnUndo;
-    private TextView btnKeep;
+    private ImageButton btnDelete;
+    private ImageButton btnUndo;
+    private ImageButton btnKeep;
+    private ImageButton btnFavorite;
+    private ImageButton btnCollection;
+    private TextView btnSettings;
+    private ImageButton btnTheme;
     private TextView btnSecondaryAction;
+    private TextView btnReviewSelected;
+    private View layoutIntroHint;
+    private View layoutOnboardingOverlay;
+    private View onboardingDemoCard;
+    private View onboardingKeepLabel;
+    private View onboardingDeleteLabel;
+    private View onboardingFavoriteButton;
+    private View onboardingUndoButton;
+    private View onboardingKeepButton;
+    private View onboardingDeleteButton;
+    private View onboardingReviewButton;
+    private TextView tvOnboardingStepTitle;
+    private TextView tvOnboardingStepBody;
+    private TextView tvOnboardingCounter;
+    private TextView btnOnboardingDone;
+    private View layoutNotice;
     private ScrollView scrollDeletePreview;
     private GridLayout gridDeletePreview;
     private ProgressBar progressBar;
+    private ProgressBar scoreProgress;
 
     private final List<PhotoItem> photos = new ArrayList<>();
     private final List<PhotoItem> queuedDeletePhotos = new ArrayList<>();
+    private final List<List<PhotoItem>> duplicateGroups = new ArrayList<>();
     private final ArrayDeque<UndoAction> undoStack = new ArrayDeque<>();
     private int currentIndex = 0;
+    private int duplicateGroupIndex = 0;
     private int deletedCount = 0;
     private int keptCount = 0;
+    private int streakCount = 0;
+    private long sessionSavedBytes = 0L;
     private boolean editingDeleteList = false;
+    private int onboardingStep = 0;
+    private Runnable onboardingReplayRunnable;
 
     private final ActivityResultLauncher<String[]> permissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
@@ -86,6 +134,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        AppPreferences.applyTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         bindViews();
@@ -94,14 +143,31 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         reviewStore = new ReviewStore(this);
         setupListeners();
         checkPermissions();
+        showOnboardingIfNeeded();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (reviewStore != null) {
+            updateCollectionButton();
+        }
+        updateThemeButton();
     }
 
     private void bindViews() {
         swipeCardView = findViewById(R.id.swipeCardView);
         layoutEmpty = findViewById(R.id.layoutEmpty);
-        tvPhotoCount = findViewById(R.id.tvPhotoCount);
-        tvDeletedCount = findViewById(R.id.tvDeletedCount);
-        tvKeptCount = findViewById(R.id.tvKeptCount);
+        tvSavedMb = findViewById(R.id.tvSavedMb);
+        tvScoreCaption = findViewById(R.id.tvScoreCaption);
+        tvStreakLabel = findViewById(R.id.tvStreakLabel);
+        tvPhotoCount = tvStreakLabel;
+        tvDeletedCount = tvStreakLabel;
+        tvKeptCount = tvStreakLabel;
+        tvHintTitle = findViewById(R.id.tvHintTitle);
+        tvHintBody = findViewById(R.id.tvHintBody);
+        tvNoticeIcon = findViewById(R.id.tvNoticeIcon);
+        tvNoticeMessage = findViewById(R.id.tvNoticeMessage);
         tvEmptyTitle = findViewById(R.id.tvEmptyTitle);
         tvEmptyDesc = findViewById(R.id.tvEmptyDesc);
         layoutEmptyIcon = findViewById(R.id.layoutEmptyIcon);
@@ -109,10 +175,31 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         btnDelete = findViewById(R.id.btnDelete);
         btnUndo = findViewById(R.id.btnUndo);
         btnKeep = findViewById(R.id.btnKeep);
+        btnFavorite = findViewById(R.id.btnFavorite);
+        btnCollection = findViewById(R.id.btnCollection);
+        btnSettings = findViewById(R.id.btnSettings);
+        btnTheme = findViewById(R.id.btnTheme);
         btnSecondaryAction = findViewById(R.id.btnSecondaryAction);
+        btnReviewSelected = findViewById(R.id.btnReviewSelected);
+        layoutIntroHint = findViewById(R.id.layoutIntroHint);
+        layoutOnboardingOverlay = findViewById(R.id.layoutOnboardingOverlay);
+        onboardingDemoCard = findViewById(R.id.onboardingDemoCard);
+        onboardingKeepLabel = findViewById(R.id.onboardingKeepLabel);
+        onboardingDeleteLabel = findViewById(R.id.onboardingDeleteLabel);
+        onboardingFavoriteButton = findViewById(R.id.onboardingFavoriteButton);
+        onboardingUndoButton = findViewById(R.id.onboardingUndoButton);
+        onboardingKeepButton = findViewById(R.id.onboardingKeepButton);
+        onboardingDeleteButton = findViewById(R.id.onboardingDeleteButton);
+        onboardingReviewButton = findViewById(R.id.onboardingReviewButton);
+        tvOnboardingStepTitle = findViewById(R.id.tvOnboardingStepTitle);
+        tvOnboardingStepBody = findViewById(R.id.tvOnboardingStepBody);
+        tvOnboardingCounter = findViewById(R.id.tvOnboardingCounter);
+        btnOnboardingDone = findViewById(R.id.btnOnboardingDone);
+        layoutNotice = findViewById(R.id.layoutNotice);
         scrollDeletePreview = findViewById(R.id.scrollDeletePreview);
         gridDeletePreview = findViewById(R.id.gridDeletePreview);
         progressBar = findViewById(R.id.progressBar);
+        scoreProgress = findViewById(R.id.scoreProgress);
     }
 
     private void setupSystemBars() {
@@ -125,10 +212,23 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
 
     private void setupListeners() {
         swipeCardView.setSwipeListener(this);
+        updateCollectionButton();
+        updateThemeButton();
+        btnTheme.setOnClickListener(view -> {
+            animateButton(btnTheme);
+            AppPreferences.setDarkMode(this, !AppPreferences.isDarkMode(this));
+            updateThemeButton();
+        });
+        btnSettings.setOnClickListener(view -> showSettingsDialog());
+        btnCollection.setOnClickListener(view -> startActivity(new Intent(this, FavoritesActivity.class)));
         btnGrantPermission.setOnClickListener(view -> permissionLauncher.launch(requiredPermissions()));
         btnKeep.setOnClickListener(view -> {
             animateButton(btnKeep);
             swipeCardView.swipeRight();
+        });
+        btnFavorite.setOnClickListener(view -> {
+            animateButton(btnFavorite);
+            addCurrentPhotoToFavorites();
         });
         btnDelete.setOnClickListener(view -> {
             animateButton(btnDelete);
@@ -138,11 +238,195 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
             animateButton(btnUndo);
             undoLastAction();
         });
-        findViewById(R.id.btnMainHome).setOnClickListener(view -> finish());
-        findViewById(R.id.btnMainGuide).setOnClickListener(view ->
-                startActivity(new Intent(this, GuideActivity.class)));
-        findViewById(R.id.btnMainStats).setOnClickListener(view ->
-                startActivity(new Intent(this, StatsActivity.class)));
+        btnReviewSelected.setOnClickListener(view -> startDeleteReview());
+        btnOnboardingDone.setOnClickListener(view -> advanceOnboarding());
+        findViewById(R.id.btnOnboardingSkip).setOnClickListener(view -> hideOnboardingOverlay());
+    }
+
+    private void showOnboardingIfNeeded() {
+        if (layoutOnboardingOverlay == null || AppPreferences.isOnboardingDone(this)) {
+            return;
+        }
+        layoutOnboardingOverlay.setVisibility(View.VISIBLE);
+        layoutOnboardingOverlay.setAlpha(0f);
+        layoutOnboardingOverlay.animate()
+                .alpha(1f)
+                .setDuration(220L)
+                .setInterpolator(new DecelerateInterpolator())
+                .withEndAction(() -> {
+                    onboardingStep = 0;
+                    renderOnboardingStep();
+                })
+                .start();
+    }
+
+    private void hideOnboardingOverlay() {
+        AppPreferences.setOnboardingDone(this);
+        AppPreferences.setMainHintDone(this);
+        stopOnboardingAnimation();
+        if (layoutOnboardingOverlay == null || layoutOnboardingOverlay.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        layoutOnboardingOverlay.animate()
+                .alpha(0f)
+                .setDuration(180L)
+                .withEndAction(() -> layoutOnboardingOverlay.setVisibility(View.GONE))
+                .start();
+    }
+
+    private void advanceOnboarding() {
+        if (onboardingStep >= 5) {
+            hideOnboardingOverlay();
+            return;
+        }
+        onboardingStep++;
+        renderOnboardingStep();
+    }
+
+    private void renderOnboardingStep() {
+        String[] titles = {
+                "Sağa kaydır",
+                "Sola kaydır",
+                "Favoriler burada",
+                "Geri al",
+                "Seçilenleri incele",
+                "Silme en sonda"
+        };
+        String[] bodies = {
+                "Fotoğraf sağa giderse tutulur ve sıradaki karta geçilir.",
+                "Fotoğraf sola giderse silinecekler listesine eklenir; hemen silinmez.",
+                "Kalp butonu fotoğrafı favorilere ekler. Favorilerine üstteki kalpten ulaşırsın.",
+                "Yanlış kaydırırsan geri al butonu son işlemi geri getirir.",
+                "Sola kaydırınca kartın üstünde seçilenler barı çıkar. Hepsini bitirmeden oradan listeye girebilirsin.",
+                "Silme işlemi, seçilenler ekranındaki son Android onayından sonra gerçekleşir."
+        };
+        tvOnboardingStepTitle.setText(titles[onboardingStep]);
+        tvOnboardingStepBody.setText(bodies[onboardingStep]);
+        tvOnboardingCounter.setText((onboardingStep + 1) + "/6");
+        btnOnboardingDone.setText(onboardingStep == 5 ? "Anladım" : "İleri");
+        playOnboardingAnimation();
+    }
+
+    private void playOnboardingAnimation() {
+        stopOnboardingAnimation();
+        resetOnboardingDemo();
+
+        if (onboardingStep == 0) {
+            showSwipeAnimation(true);
+        } else if (onboardingStep == 1) {
+            showSwipeAnimation(false);
+        } else if (onboardingStep == 2) {
+            pulseOnboardingView(onboardingFavoriteButton);
+        } else if (onboardingStep == 3) {
+            showUndoAnimation();
+        } else if (onboardingStep == 4) {
+            onboardingReviewButton.setVisibility(View.VISIBLE);
+            pulseOnboardingView(onboardingReviewButton);
+        } else {
+            onboardingReviewButton.setVisibility(View.VISIBLE);
+            onboardingDeleteLabel.setVisibility(View.VISIBLE);
+            onboardingDeleteLabel.setAlpha(1f);
+            onboardingDemoCard.setAlpha(0.72f);
+            pulseOnboardingView(onboardingReviewButton);
+        }
+
+        onboardingReplayRunnable = this::playOnboardingAnimation;
+        layoutOnboardingOverlay.postDelayed(onboardingReplayRunnable, 2600L);
+    }
+
+    private void showUndoAnimation() {
+        onboardingDeleteLabel.setVisibility(View.VISIBLE);
+        pulseOnboardingView(onboardingUndoButton);
+        onboardingDemoCard.animate()
+                .translationX(-dpToPx(72))
+                .rotation(-7f)
+                .setDuration(360L)
+                .setInterpolator(new DecelerateInterpolator())
+                .withEndAction(() -> onboardingDemoCard.animate()
+                        .translationX(0f)
+                        .rotation(0f)
+                        .setStartDelay(180L)
+                        .setDuration(420L)
+                        .setInterpolator(new OvershootInterpolator(0.8f))
+                        .start())
+                .start();
+    }
+
+    private void showSwipeAnimation(boolean keep) {
+        View label = keep ? onboardingKeepLabel : onboardingDeleteLabel;
+        View button = keep ? onboardingKeepButton : onboardingDeleteButton;
+        float distance = keep ? dpToPx(92) : -dpToPx(92);
+        float rotation = keep ? 9f : -9f;
+
+        label.setVisibility(View.VISIBLE);
+        label.setAlpha(0f);
+        label.animate().alpha(1f).setDuration(180L).start();
+        pulseOnboardingView(button);
+        onboardingDemoCard.animate()
+                .translationX(distance)
+                .rotation(rotation)
+                .setStartDelay(260L)
+                .setDuration(520L)
+                .setInterpolator(new DecelerateInterpolator())
+                .withEndAction(() -> onboardingDemoCard.animate()
+                        .alpha(0f)
+                        .setDuration(160L)
+                        .withEndAction(() -> {
+                            onboardingDemoCard.setTranslationX(0f);
+                            onboardingDemoCard.setRotation(0f);
+                            onboardingDemoCard.animate().alpha(1f).setDuration(180L).start();
+                        })
+                        .start())
+                .start();
+    }
+
+    private void pulseOnboardingView(View view) {
+        view.animate()
+                .scaleX(1.18f)
+                .scaleY(1.18f)
+                .setDuration(260L)
+                .setInterpolator(new DecelerateInterpolator())
+                .withEndAction(() -> view.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(340L)
+                        .setInterpolator(new OvershootInterpolator(0.7f))
+                        .start())
+                .start();
+    }
+
+    private void resetOnboardingDemo() {
+        View[] views = {
+                onboardingDemoCard,
+                onboardingFavoriteButton,
+                onboardingUndoButton,
+                onboardingKeepButton,
+                onboardingDeleteButton,
+                onboardingReviewButton
+        };
+        for (View view : views) {
+            view.animate().cancel();
+            view.setScaleX(1f);
+            view.setScaleY(1f);
+            view.setAlpha(1f);
+        }
+        onboardingDemoCard.setTranslationX(0f);
+        onboardingDemoCard.setTranslationY(0f);
+        onboardingDemoCard.setRotation(0f);
+        onboardingKeepLabel.animate().cancel();
+        onboardingDeleteLabel.animate().cancel();
+        onboardingKeepLabel.setVisibility(View.GONE);
+        onboardingDeleteLabel.setVisibility(View.GONE);
+        onboardingReviewButton.setVisibility(View.GONE);
+        onboardingKeepLabel.setAlpha(1f);
+        onboardingDeleteLabel.setAlpha(1f);
+    }
+
+    private void stopOnboardingAnimation() {
+        if (layoutOnboardingOverlay != null && onboardingReplayRunnable != null) {
+            layoutOnboardingOverlay.removeCallbacks(onboardingReplayRunnable);
+            onboardingReplayRunnable = null;
+        }
     }
 
     private void checkPermissions() {
@@ -163,7 +447,10 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
 
     private String[] requiredPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return new String[] { Manifest.permission.READ_MEDIA_IMAGES };
+            return new String[] {
+                    Manifest.permission.READ_MEDIA_IMAGES,
+                    Manifest.permission.READ_MEDIA_VIDEO
+            };
         }
         return new String[] { Manifest.permission.READ_EXTERNAL_STORAGE };
     }
@@ -172,6 +459,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         editingDeleteList = false;
         hideDeletePreviewGrid();
         btnSecondaryAction.setVisibility(View.GONE);
+        btnReviewSelected.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.GONE);
         swipeCardView.setVisibility(View.VISIBLE);
 
@@ -181,14 +469,20 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
                 photos.clear();
                 photos.addAll(loadedPhotos);
                 currentIndex = 0;
+                duplicateGroupIndex = 0;
+                duplicateGroups.clear();
+                duplicateGroups.addAll(findDuplicateGroups(loadedPhotos));
                 queuedDeletePhotos.clear();
                 undoStack.clear();
                 updateStats();
 
                 if (photos.isEmpty()) {
                     showEmptyGallery();
+                } else if (!duplicateGroups.isEmpty()) {
+                    showDuplicateGroup();
                 } else {
                     showCurrentPhotos();
+                    showIntroHintIfNeeded();
                 }
             });
         }).start();
@@ -203,11 +497,26 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
 
         layoutEmpty.setVisibility(View.GONE);
         swipeCardView.setVisibility(View.VISIBLE);
+        updateReviewSelectedButton();
         PhotoItem current = photos.get(currentIndex);
         PhotoItem next = currentIndex + 1 < photos.size() ? photos.get(currentIndex + 1) : null;
         swipeCardView.setPhotos(current, next);
+        updateFavoriteButton(current);
         updateCounter();
         updateProgressBar();
+    }
+
+    private void updateReviewSelectedButton() {
+        if (btnReviewSelected == null) {
+            return;
+        }
+        boolean show = !editingDeleteList
+                && layoutEmpty.getVisibility() != View.VISIBLE
+                && !queuedDeletePhotos.isEmpty();
+        btnReviewSelected.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show) {
+            btnReviewSelected.setText(queuedDeletePhotos.size() + " seçildi - İncele / Sil");
+        }
     }
 
     @Override
@@ -221,6 +530,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         reviewStore.markReviewed(photo.getId());
         reviewStore.addKept();
         keptCount++;
+        streakCount++;
         currentIndex++;
         updateStats();
         showCurrentPhotos();
@@ -238,6 +548,9 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         undoStack.addLast(new UndoAction(photo, false));
         reviewStore.markReviewed(photo.getId());
         deletedCount++;
+        sessionSavedBytes += Math.max(photo.getSize(), 0L);
+        streakCount++;
+        pulseScore();
         currentIndex++;
         updateStats();
         showCurrentPhotos();
@@ -265,7 +578,24 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         showPhotoPreview(photo);
     }
 
+    @Override
+    public void onPhotoDoubleTapped(PhotoItem photo) {
+        toggleFavorite(photo);
+    }
+
     private void showPhotoPreview(PhotoItem photo) {
+        if (photo.isVideo()) {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(photo.getUri(), "video/*");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            try {
+                startActivity(Intent.createChooser(intent, "Videoyu ac"));
+            } catch (RuntimeException exception) {
+                showToast("Video acilamadi");
+            }
+            return;
+        }
+
         Dialog dialog = new Dialog(this);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
 
@@ -333,6 +663,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         editingDeleteList = false;
         swipeCardView.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.VISIBLE);
+        btnReviewSelected.setVisibility(View.GONE);
         layoutEmptyIcon.setVisibility(View.GONE);
         tvEmptyTitle.setText("Silme Onayı");
         tvEmptyDesc.setText(queuedDeletePhotos.size()
@@ -343,7 +674,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         btnSecondaryAction.setText("Düzenlemeye Devam Et");
         btnSecondaryAction.setVisibility(View.VISIBLE);
         btnSecondaryAction.setOnClickListener(view -> startDeleteListEdit());
-        tvPhotoCount.setText("0");
+        updateStats();
         progressBar.setProgress(100);
     }
 
@@ -356,6 +687,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         editingDeleteList = true;
         currentIndex = 0;
         hideDeletePreviewGrid();
+        btnReviewSelected.setVisibility(View.GONE);
         btnSecondaryAction.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.GONE);
         swipeCardView.setVisibility(View.VISIBLE);
@@ -383,7 +715,8 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
                 ? queuedDeletePhotos.get(currentIndex + 1)
                 : null;
         swipeCardView.setPhotos(current, next);
-        tvPhotoCount.setText(String.valueOf(queuedDeletePhotos.size() - currentIndex));
+        updateFavoriteButton(current);
+        updateStats();
         progressBar.setProgress((int) ((currentIndex / (float) queuedDeletePhotos.size()) * 100));
         updateStats();
     }
@@ -398,6 +731,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         queuedDeletePhotos.remove(photo);
         deletedCount = Math.max(deletedCount - 1, 0);
         keptCount++;
+        sessionSavedBytes = Math.max(sessionSavedBytes - Math.max(photo.getSize(), 0L), 0L);
         reviewStore.addKept();
         updateStats();
         showDeleteEditPhoto();
@@ -430,6 +764,154 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         scrollDeletePreview.setVisibility(View.GONE);
         gridDeletePreview.removeAllViews();
         layoutEmptyIcon.setVisibility(View.VISIBLE);
+    }
+
+    private List<List<PhotoItem>> findDuplicateGroups(List<PhotoItem> items) {
+        Map<String, List<PhotoItem>> byKey = new HashMap<>();
+        for (PhotoItem item : items) {
+            if (item.getSize() <= 0L) {
+                continue;
+            }
+            List<PhotoItem> group = byKey.computeIfAbsent(item.getDuplicateKey(), key -> new ArrayList<>());
+            group.add(item);
+        }
+
+        List<List<PhotoItem>> groups = new ArrayList<>();
+        for (List<PhotoItem> group : byKey.values()) {
+            if (group.size() > 1) {
+                groups.add(group);
+            }
+        }
+        groups.sort((left, right) -> Long.compare(totalSize(right), totalSize(left)));
+        return groups;
+    }
+
+    private long totalSize(List<PhotoItem> items) {
+        long total = 0L;
+        for (PhotoItem item : items) {
+            total += Math.max(item.getSize(), 0L);
+        }
+        return total;
+    }
+
+    private void showDuplicateGroup() {
+        if (duplicateGroupIndex >= duplicateGroups.size()) {
+            if (queuedDeletePhotos.isEmpty()) {
+                showCurrentPhotos();
+                showIntroHintIfNeeded();
+            } else {
+                startDeleteReview();
+            }
+            return;
+        }
+
+        editingDeleteList = false;
+        swipeCardView.setVisibility(View.GONE);
+        layoutEmpty.setVisibility(View.VISIBLE);
+        btnReviewSelected.setVisibility(View.GONE);
+        layoutEmptyIcon.setVisibility(View.GONE);
+        scrollDeletePreview.setVisibility(View.VISIBLE);
+
+        List<PhotoItem> group = duplicateGroups.get(duplicateGroupIndex);
+        for (int i = 1; i < group.size(); i++) {
+            PhotoItem item = group.get(i);
+            if (!queuedDeletePhotos.contains(item)) {
+                queuedDeletePhotos.add(item);
+            }
+        }
+
+        tvEmptyTitle.setText("Duplicate bulundu");
+        tvEmptyDesc.setText((duplicateGroupIndex + 1) + "/" + duplicateGroups.size()
+                + " grup · " + group.size()
+                + " ayni dosya. Ilkini tutuyoruz; silmek istemedigine dokun.");
+        btnGrantPermission.setText(duplicateGroupIndex + 1 < duplicateGroups.size()
+                ? "Sonraki Duplicate"
+                : "Secilenleri Sil");
+        btnGrantPermission.setOnClickListener(view -> {
+            duplicateGroupIndex++;
+            showDuplicateGroup();
+        });
+        btnSecondaryAction.setText("Bu Grubu Atla");
+        btnSecondaryAction.setVisibility(View.VISIBLE);
+        btnSecondaryAction.setOnClickListener(view -> {
+            queuedDeletePhotos.removeAll(group);
+            duplicateGroupIndex++;
+            showDuplicateGroup();
+        });
+        buildDuplicateGrid(group);
+        updateStats();
+    }
+
+    private void buildDuplicateGrid(List<PhotoItem> group) {
+        gridDeletePreview.removeAllViews();
+        int itemSize = dpToPx(92);
+        int margin = dpToPx(4);
+
+        for (int i = 0; i < group.size(); i++) {
+            PhotoItem item = group.get(i);
+            FrameLayout cell = new FrameLayout(this);
+            cell.setBackgroundColor(ContextCompat.getColor(this, R.color.bg_card));
+
+            ImageView imageView = new ImageView(this);
+            if (item.isVideo()) {
+                imageView.setImageBitmap(createVideoFrame(item));
+            } else {
+                imageView.setImageURI(item.getUri());
+            }
+            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            imageView.setContentDescription(item.getDisplayName());
+            cell.addView(imageView, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+            ));
+
+            TextView badge = new TextView(this);
+            badge.setGravity(android.view.Gravity.CENTER);
+            badge.setTextColor(ContextCompat.getColor(this, R.color.white));
+            badge.setTextSize(11f);
+            badge.setTypeface(badge.getTypeface(), android.graphics.Typeface.BOLD);
+            badge.setBackgroundColor(queuedDeletePhotos.contains(item) ? 0xCCF05A5F : 0xCC19B77A);
+            badge.setText(i == 0 || !queuedDeletePhotos.contains(item) ? "TUT" : "SIL");
+            FrameLayout.LayoutParams badgeParams = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    dpToPx(24),
+                    android.view.Gravity.BOTTOM
+            );
+            cell.addView(badge, badgeParams);
+
+            if (i > 0) {
+                cell.setOnClickListener(view -> {
+                    if (queuedDeletePhotos.contains(item)) {
+                        queuedDeletePhotos.remove(item);
+                    } else {
+                        queuedDeletePhotos.add(item);
+                    }
+                    buildDuplicateGrid(group);
+                    updateStats();
+                });
+            }
+
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+            params.width = itemSize;
+            params.height = itemSize;
+            params.setMargins(margin, margin, margin, margin);
+            gridDeletePreview.addView(cell, params);
+        }
+    }
+
+    private Bitmap createVideoFrame(PhotoItem item) {
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        try {
+            retriever.setDataSource(this, item.getUri());
+            return retriever.getFrameAtTime(0);
+        } catch (RuntimeException exception) {
+            return null;
+        } finally {
+            try {
+                retriever.release();
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     private int dpToPx(int dp) {
@@ -473,8 +955,10 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
             currentIndex--;
             queuedDeletePhotos.remove(action.photo);
             deletedCount--;
+            sessionSavedBytes = Math.max(sessionSavedBytes - Math.max(action.photo.getSize(), 0L), 0L);
             reviewStore.unmarkReviewed(action.photo.getId());
         }
+        streakCount = Math.max(streakCount - 1, 0);
         updateStats();
         showCurrentPhotos();
         showToast(action.kept ? "Saklama geri alındı" : "Silme listesinden çıkarıldı");
@@ -483,6 +967,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private void showPermissionUI() {
         swipeCardView.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.VISIBLE);
+        btnReviewSelected.setVisibility(View.GONE);
         hideDeletePreviewGrid();
         btnSecondaryAction.setVisibility(View.GONE);
         tvEmptyTitle.setText("Galeriye Erişim Gerekli");
@@ -494,6 +979,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private void showPermissionDenied() {
         layoutEmpty.setVisibility(View.VISIBLE);
         swipeCardView.setVisibility(View.GONE);
+        btnReviewSelected.setVisibility(View.GONE);
         hideDeletePreviewGrid();
         btnSecondaryAction.setVisibility(View.GONE);
         tvEmptyTitle.setText("İzin Verilmedi");
@@ -505,6 +991,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private void showEmptyGallery() {
         swipeCardView.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.VISIBLE);
+        btnReviewSelected.setVisibility(View.GONE);
         hideDeletePreviewGrid();
         btnSecondaryAction.setVisibility(View.GONE);
         tvEmptyTitle.setText("Fotoğraf Bulunamadı");
@@ -518,6 +1005,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private void showAllDone() {
         swipeCardView.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.VISIBLE);
+        btnReviewSelected.setVisibility(View.GONE);
         hideDeletePreviewGrid();
         btnSecondaryAction.setVisibility(View.GONE);
         tvEmptyTitle.setText("Hepsi tamam!");
@@ -540,37 +1028,87 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         hideDeletePreviewGrid();
         deletedCount = 0;
         keptCount = 0;
+        streakCount = 0;
+        sessionSavedBytes = 0L;
         queuedDeletePhotos.clear();
         loadPhotos();
     }
 
     private void updateCounter() {
-        tvPhotoCount.setText(String.valueOf(Math.max(photos.size() - currentIndex, 0)));
+        updateStats();
     }
 
     private void updateStats() {
-        tvDeletedCount.setText("Silinecek: " + deletedCount);
-        tvKeptCount.setText("Saklanan: " + keptCount);
+        int remaining = editingDeleteList
+                ? Math.max(queuedDeletePhotos.size() - currentIndex, 0)
+                : Math.max(photos.size() - currentIndex, 0);
+        tvSavedMb.setText(formatBytes(sessionSavedBytes) + " kazanıldı");
+        tvStreakLabel.setText("Seri " + streakCount + "  |  Kalan " + remaining
+                + "  |  Sil " + deletedCount + "  |  Tut " + keptCount);
     }
 
     private void updateProgressBar() {
         if (photos.isEmpty()) {
             progressBar.setProgress(0);
+            updateScoreProgress();
             return;
         }
         progressBar.setProgress((int) ((currentIndex / (float) photos.size()) * 100));
+        updateScoreProgress();
+    }
+
+    private void updateScoreProgress() {
+        if (scoreProgress == null) {
+            return;
+        }
+        long totalBytes = getDeviceStorageBytes();
+        double percent = totalBytes <= 0L ? 0.0 : (sessionSavedBytes * 100.0) / totalBytes;
+        int progress = (int) Math.min(100, Math.round(percent));
+        if (sessionSavedBytes > 0L) {
+            progress = Math.max(progress, 2);
+        }
+        scoreProgress.setProgress(progress);
+        if (tvScoreCaption != null) {
+            tvScoreCaption.setText(String.format(
+                    java.util.Locale.getDefault(),
+                    "HAFIZA +%s",
+                    formatStoragePercent(percent)
+            ));
+        }
+    }
+
+    private long getDeviceStorageBytes() {
+        try {
+            StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
+            return statFs.getTotalBytes();
+        } catch (IllegalArgumentException exception) {
+            return 0L;
+        }
+    }
+
+    private String formatStoragePercent(double percent) {
+        if (percent <= 0.0) {
+            return "%0.00";
+        }
+        if (percent < 0.01) {
+            return "<%0.01";
+        }
+        if (percent < 10.0) {
+            return String.format(java.util.Locale.getDefault(), "%%%1$.2f", percent);
+        }
+        return String.format(java.util.Locale.getDefault(), "%%%1$.1f", percent);
     }
 
     private void animateButton(View view) {
         view.animate()
-                .scaleX(0.86f)
-                .scaleY(0.86f)
-                .setDuration(80L)
+                .scaleX(0.94f)
+                .scaleY(0.94f)
+                .setDuration(70L)
                 .withEndAction(() -> view.animate()
                         .scaleX(1f)
                         .scaleY(1f)
-                        .setDuration(160L)
-                        .setInterpolator(new OvershootInterpolator())
+                        .setDuration(190L)
+                        .setInterpolator(new OvershootInterpolator(1.35f))
                         .start())
                 .start();
     }
@@ -583,7 +1121,224 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     }
 
     private void showToast(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        if (layoutNotice == null) {
+            return;
+        }
+        layoutNotice.animate().cancel();
+        tvNoticeMessage.setText(message);
+        tvNoticeIcon.setText(iconForNotice(message));
+        layoutNotice.setVisibility(View.VISIBLE);
+        layoutNotice.setAlpha(0f);
+        layoutNotice.setTranslationY(dpToPx(16));
+        layoutNotice.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(180L)
+                .setInterpolator(new DecelerateInterpolator())
+                .withEndAction(() -> layoutNotice.postDelayed(() -> layoutNotice.animate()
+                        .alpha(0f)
+                        .translationY(dpToPx(12))
+                        .setDuration(220L)
+                        .withEndAction(() -> layoutNotice.setVisibility(View.GONE))
+                        .start(), 1700L))
+                .start();
+    }
+
+    private String iconForNotice(String message) {
+        if (message.contains("Geri") || message.contains("geri")) {
+            return "↶";
+        }
+        if (message.contains("Sil") || message.contains("sil")) {
+            return "×";
+        }
+        if (message.contains("Koleksiyon")) {
+            return "♥";
+        }
+        return "✓";
+    }
+
+    private void addCurrentPhotoToFavorites() {
+        PhotoItem photo = swipeCardView.getCurrentPhoto();
+        if (photo == null) {
+            return;
+        }
+        toggleFavorite(photo);
+    }
+
+    private void toggleFavorite(PhotoItem photo) {
+        boolean isFavorite = reviewStore.getFavoriteIds().contains(String.valueOf(photo.getId()));
+        if (isFavorite) {
+            reviewStore.removeFavorite(photo.getId());
+            showToast("Favorilerden cikarildi");
+        } else {
+            reviewStore.addFavorite(photo.getId());
+            showToast("Favorilere eklendi");
+        }
+        updateFavoriteButton(photo);
+        updateCollectionButton();
+    }
+
+    private void updateFavoriteButton(PhotoItem photo) {
+        if (btnFavorite == null || reviewStore == null || photo == null) {
+            return;
+        }
+        boolean isFavorite = reviewStore.getFavoriteIds().contains(String.valueOf(photo.getId()));
+        btnFavorite.setImageResource(R.drawable.ic_action_heart);
+        btnFavorite.setAlpha(isFavorite ? 1f : 0.72f);
+    }
+
+    private void updateCollectionButton() {
+        if (btnCollection != null && reviewStore != null) {
+            btnCollection.setImageResource(R.drawable.ic_action_heart);
+            btnCollection.setAlpha(reviewStore.getFavoriteCount() > 0 ? 1f : 0.72f);
+        }
+    }
+
+    private void updateThemeButton() {
+        if (btnTheme == null) {
+            return;
+        }
+        btnTheme.setImageResource(AppPreferences.isDarkMode(this)
+                ? R.drawable.ic_action_sun
+                : R.drawable.ic_action_moon);
+    }
+
+    private void showSettingsDialog() {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dpToPx(22), dpToPx(20), dpToPx(22), dpToPx(18));
+        content.setBackgroundResource(R.drawable.bg_stat_panel);
+
+        TextView title = new TextView(this);
+        title.setText("Ayarlar");
+        title.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        title.setTextSize(22f);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        content.addView(title);
+
+        TextView guide = new TextView(this);
+        guide.setText("Sola kaydırınca silme listesine alınır ve MB sayacı artar.\nSağa kaydırınca fotoğraf kalır.\nKalp koleksiyona ekler, üstteki kalp koleksiyonu açar.");
+        guide.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+        guide.setTextSize(14f);
+        guide.setLineSpacing(dpToPx(3), 1f);
+        LinearLayout.LayoutParams guideParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        guideParams.setMargins(0, dpToPx(12), 0, dpToPx(14));
+        content.addView(guide, guideParams);
+
+        SwitchMaterial themeSwitch = new SwitchMaterial(this);
+        themeSwitch.setText("Gece modu");
+        themeSwitch.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        themeSwitch.setTextSize(15f);
+        themeSwitch.setChecked(AppPreferences.isDarkMode(this));
+        themeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> AppPreferences.setDarkMode(this, isChecked));
+        content.addView(themeSwitch);
+
+        TextView appSettings = new TextView(this);
+        appSettings.setText("Uygulama izinleri");
+        appSettings.setGravity(android.view.Gravity.CENTER);
+        appSettings.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        appSettings.setTextSize(15f);
+        appSettings.setTypeface(appSettings.getTypeface(), android.graphics.Typeface.BOLD);
+        appSettings.setBackgroundResource(R.drawable.bg_action_ghost);
+        appSettings.setOnClickListener(view -> {
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        });
+        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(52)
+        );
+        settingsParams.setMargins(0, dpToPx(16), 0, 0);
+        content.addView(appSettings, settingsParams);
+
+        dialog.setContentView(content);
+        Window window = dialog.getWindow();
+        dialog.show();
+        Window shownWindow = dialog.getWindow();
+        if (shownWindow != null) {
+            shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            shownWindow.setLayout(
+                    getResources().getDisplayMetrics().widthPixels - dpToPx(34),
+                    WindowManager.LayoutParams.WRAP_CONTENT
+            );
+        }
+    }
+
+    private void showIntroHintIfNeeded() {
+        if (layoutIntroHint == null
+                || AppPreferences.isMainHintDone(this)
+                || !AppPreferences.isOnboardingDone(this)) {
+            return;
+        }
+        AppPreferences.setMainHintDone(this);
+        layoutIntroHint.setVisibility(View.VISIBLE);
+        layoutIntroHint.setAlpha(0f);
+        layoutIntroHint.setTranslationY(-dpToPx(14));
+        layoutIntroHint.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(320L)
+                .setInterpolator(new DecelerateInterpolator())
+                .withEndAction(() -> layoutIntroHint.postDelayed(() -> {
+                    tvHintTitle.setText("Kural basit");
+                    tvHintBody.setText("Sola kaydır: MB kazan. Sağa kaydır: sakla. Geri ile son hamleyi al.");
+                    layoutIntroHint.animate()
+                            .translationY(-dpToPx(8))
+                            .setDuration(160L)
+                            .withEndAction(() -> layoutIntroHint.animate()
+                                    .translationY(0f)
+                                    .setDuration(220L)
+                                    .setInterpolator(new OvershootInterpolator(0.8f))
+                                    .start())
+                            .start();
+                    layoutIntroHint.postDelayed(() -> layoutIntroHint.animate()
+                            .alpha(0f)
+                            .translationY(-dpToPx(12))
+                            .setDuration(260L)
+                            .withEndAction(() -> layoutIntroHint.setVisibility(View.GONE))
+                            .start(), 2600L);
+                }, 1100L))
+                .start();
+    }
+
+    private void pulseScore() {
+        tvSavedMb.animate()
+                .scaleX(1.08f)
+                .scaleY(1.08f)
+                .setDuration(120L)
+                .withEndAction(() -> tvSavedMb.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(220L)
+                        .setInterpolator(new OvershootInterpolator(0.9f))
+                        .start())
+                .start();
+        if (scoreProgress != null) {
+            scoreProgress.animate()
+                    .scaleY(1.8f)
+                    .setDuration(120L)
+                    .withEndAction(() -> scoreProgress.animate()
+                            .scaleY(1f)
+                            .setDuration(220L)
+                            .setInterpolator(new OvershootInterpolator(0.9f))
+                            .start())
+                    .start();
+        }
+    }
+
+    private String formatBytes(long bytes) {
+        double mb = bytes / 1024.0 / 1024.0;
+        if (mb < 10) {
+            return String.format(java.util.Locale.getDefault(), "%.1f MB", mb);
+        }
+        return String.format(java.util.Locale.getDefault(), "%.0f MB", mb);
     }
 
     private static class UndoAction {

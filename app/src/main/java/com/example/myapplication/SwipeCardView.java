@@ -3,6 +3,8 @@ package com.example.myapplication;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.media.MediaMetadataRetriever;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -16,10 +18,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-
 public class SwipeCardView extends FrameLayout {
     private static final float SWIPE_THRESHOLD = 0.28f;
     private static final float ROTATION_MAX = 14f;
@@ -32,6 +30,7 @@ public class SwipeCardView extends FrameLayout {
         void onSwipedLeft(PhotoItem photo);
         void onSwipeProgress(float progress, boolean isRight);
         void onPhotoTapped(PhotoItem photo);
+        void onPhotoDoubleTapped(PhotoItem photo);
     }
 
     private final View backCard;
@@ -39,7 +38,10 @@ public class SwipeCardView extends FrameLayout {
     private PhotoItem currentPhoto;
     private float downX;
     private float downY;
+    private long lastTapTime = 0L;
+    private Runnable pendingSingleTap;
     private SwipeListener listener;
+    private boolean isAnimatingSwipe = false;
 
     public SwipeCardView(@NonNull Context context) {
         this(context, null);
@@ -62,6 +64,7 @@ public class SwipeCardView extends FrameLayout {
     }
 
     public void setPhotos(@Nullable PhotoItem current, @Nullable PhotoItem next) {
+        isAnimatingSwipe = false;
         currentPhoto = current;
         resetCard(frontCard);
         resetCard(backCard);
@@ -77,21 +80,29 @@ public class SwipeCardView extends FrameLayout {
     }
 
     public void swipeRight() {
-        if (currentPhoto != null) {
+        if (currentPhoto != null && !isAnimatingSwipe) {
             animateFlyOut(true);
         }
     }
 
     public void swipeLeft() {
-        if (currentPhoto != null) {
+        if (currentPhoto != null && !isAnimatingSwipe) {
             animateFlyOut(false);
         }
+    }
+
+    @Nullable
+    public PhotoItem getCurrentPhoto() {
+        return currentPhoto;
     }
 
     private void setupTouchListener() {
         frontCard.setOnTouchListener((view, event) -> {
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
+                    if (isAnimatingSwipe) {
+                        return true;
+                    }
                     downX = event.getRawX();
                     downY = event.getRawY();
                     frontCard.animate().cancel();
@@ -115,7 +126,7 @@ public class SwipeCardView extends FrameLayout {
                     if (Math.abs(totalDx) < TAP_SLOP && Math.abs(totalDy) < TAP_SLOP) {
                         animateBackToCenter();
                         if (listener != null && currentPhoto != null) {
-                            listener.onPhotoTapped(currentPhoto);
+                            handleTap(currentPhoto);
                         }
                     } else if (Math.abs(totalDx) >= swipeThreshold()) {
                         animateFlyOut(totalDx > 0);
@@ -127,6 +138,28 @@ public class SwipeCardView extends FrameLayout {
                     return false;
             }
         });
+    }
+
+    private void handleTap(PhotoItem photo) {
+        long now = System.currentTimeMillis();
+        if (now - lastTapTime < 320L) {
+            if (pendingSingleTap != null) {
+                removeCallbacks(pendingSingleTap);
+                pendingSingleTap = null;
+            }
+            lastTapTime = 0L;
+            listener.onPhotoDoubleTapped(photo);
+            return;
+        }
+
+        lastTapTime = now;
+        pendingSingleTap = () -> {
+            pendingSingleTap = null;
+            if (listener != null) {
+                listener.onPhotoTapped(photo);
+            }
+        };
+        postDelayed(pendingSingleTap, 330L);
     }
 
     private void updateOverlayAlpha(float dx) {
@@ -144,21 +177,25 @@ public class SwipeCardView extends FrameLayout {
     }
 
     private void animateFlyOut(boolean toRight) {
+        if (isAnimatingSwipe) {
+            return;
+        }
         PhotoItem photo = currentPhoto;
         if (photo == null) {
             return;
         }
 
+        isAnimatingSwipe = true;
         frontCard.setOnTouchListener(null);
-        float targetX = toRight ? getWidth() * 1.4f : -getWidth() * 1.4f;
-        float targetRotation = toRight ? ROTATION_MAX * 1.5f : -ROTATION_MAX * 1.5f;
+        float targetX = toRight ? getWidth() * 1.65f : -getWidth() * 1.65f;
+        float targetRotation = toRight ? ROTATION_MAX * 1.8f : -ROTATION_MAX * 1.8f;
 
         frontCard.animate()
                 .translationX(targetX)
-                .translationY(frontCard.getTranslationY() - 60f)
+                .translationY(frontCard.getTranslationY() - 90f)
                 .rotation(targetRotation)
                 .alpha(0.85f)
-                .setDuration(ANIM_DURATION)
+                .setDuration(ANIM_DURATION + 40L)
                 .setInterpolator(new DecelerateInterpolator())
                 .setListener(new AnimatorListenerAdapter() {
                     @Override
@@ -174,6 +211,14 @@ public class SwipeCardView extends FrameLayout {
                         post(() -> setupTouchListener());
                     }
                 })
+                .start();
+
+        backCard.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .alpha(1f)
+                .setDuration(ANIM_DURATION)
+                .setInterpolator(new DecelerateInterpolator())
                 .start();
     }
 
@@ -225,13 +270,40 @@ public class SwipeCardView extends FrameLayout {
         ImageView image = card.findViewById(R.id.ivPhoto);
         TextView name = card.findViewById(R.id.tvPhotoName);
         TextView date = card.findViewById(R.id.tvPhotoDate);
+        TextView videoBadge = card.findViewById(R.id.tvVideoBadge);
 
-        image.setImageURI(photo.getUri());
-        name.setText(photo.getDisplayName());
+        videoBadge.setVisibility(photo.isVideo() ? VISIBLE : GONE);
+        if (photo.isVideo()) {
+            image.setImageBitmap(createVideoFrame(photo));
+        } else {
+            image.setImageURI(photo.getUri());
+        }
+        String context = photo.getContextLabel();
+        if (context == null || context.trim().isEmpty()) {
+            name.setText("");
+            date.setText("");
+            card.findViewById(R.id.layoutPhotoInfo).setVisibility(GONE);
+        } else {
+            card.findViewById(R.id.layoutPhotoInfo).setVisibility(VISIBLE);
+            name.setText(context);
+            date.setText((photo.isVideo() ? "Video · " : "") + photo.getReadableSize());
+        }
+    }
 
-        SimpleDateFormat formatter = new SimpleDateFormat("d MMM yyyy", new Locale("tr"));
-        String dateText = formatter.format(new Date(photo.getDateModified() * 1000L));
-        date.setText(dateText + "  •  " + photo.getReadableSize());
+    @Nullable
+    private Bitmap createVideoFrame(PhotoItem photo) {
+        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+        try {
+            retriever.setDataSource(getContext(), photo.getUri());
+            return retriever.getFrameAtTime(0);
+        } catch (RuntimeException exception) {
+            return null;
+        } finally {
+            try {
+                retriever.release();
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     private float swipeThreshold() {

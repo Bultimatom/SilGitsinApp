@@ -1,8 +1,9 @@
 <resources>
-    <string name="app_name">Swipe Galeri</string>
-    <string name="permission_needed">Galeriye erişim izni gerekli</string>
+    <string name="app_name">Kaydır Gitsin</string>
+    <string name="permission_needed">Galeri izni gerekli</string>
     <string name="grant_permission">İzin Ver</string>
     <string name="all_done">Tüm fotoğraflar incelendi!</string>
+    <string name="photo">Fotoğraf</string>
     <string name="label_keep">TUT</string>
     <string name="label_delete">SİL</string>
 </resources>

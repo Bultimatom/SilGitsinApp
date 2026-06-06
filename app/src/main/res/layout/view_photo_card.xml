@@ -5,8 +5,8 @@
     android:id="@+id/cardRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    app:cardBackgroundColor="@color/bg_card"
-    app:cardCornerRadius="24dp"
+    app:cardBackgroundColor="@color/black"
+    app:cardCornerRadius="28dp"
     app:cardElevation="10dp"
     app:strokeWidth="0dp">
 
@@ -19,30 +19,47 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/black"
-            android:contentDescription="Fotoğraf"
-            android:scaleType="fitCenter" />
+            android:contentDescription="@string/photo"
+            android:scaleType="centerCrop" />
+
+        <TextView
+            android:id="@+id/tvVideoBadge"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:layout_gravity="center"
+            android:alpha="0.9"
+            android:background="@drawable/bg_action_ghost"
+            android:gravity="center"
+            android:text="▶"
+            android:textColor="@color/white"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
 
         <View
             android:layout_width="match_parent"
-            android:layout_height="140dp"
+            android:layout_height="190dp"
             android:layout_gravity="bottom"
             android:background="@drawable/gradient_bottom" />
 
         <LinearLayout
+            android:id="@+id/layoutPhotoInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
             android:orientation="vertical"
-            android:padding="18dp">
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="24dp">
 
             <TextView
                 android:id="@+id/tvPhotoName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:ellipsize="middle"
+                android:ellipsize="end"
                 android:maxLines="1"
-                android:textColor="@color/text_primary"
-                android:textSize="16sp"
+                android:textColor="@color/white"
+                android:textSize="24sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -52,8 +69,8 @@
                 android:layout_marginTop="3dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textColor="#CCFFFFFF"
+                android:textSize="13sp" />
         </LinearLayout>
 
         <FrameLayout
@@ -63,21 +80,16 @@
             android:alpha="0"
             android:background="@drawable/bg_overlay_keep">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+            <ImageView
+                android:layout_width="78dp"
+                android:layout_height="78dp"
                 android:layout_gravity="top|start"
                 android:layout_margin="28dp"
-                android:background="@drawable/bg_label_keep"
-                android:paddingStart="14dp"
-                android:paddingTop="8dp"
-                android:paddingEnd="14dp"
-                android:paddingBottom="8dp"
-                android:rotation="-12"
-                android:text="@string/label_keep"
-                android:textColor="@color/accent_keep"
-                android:textSize="28sp"
-                android:textStyle="bold" />
+                android:background="@drawable/bg_action_ghost"
+                android:padding="14dp"
+                android:rotation="-10"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_action_check" />
         </FrameLayout>
 
         <FrameLayout
@@ -87,21 +99,16 @@
             android:alpha="0"
             android:background="@drawable/bg_overlay_delete">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+            <ImageView
+                android:layout_width="78dp"
+                android:layout_height="78dp"
                 android:layout_gravity="top|end"
                 android:layout_margin="28dp"
-                android:background="@drawable/bg_label_delete"
-                android:paddingStart="14dp"
-                android:paddingTop="8dp"
-                android:paddingEnd="14dp"
-                android:paddingBottom="8dp"
-                android:rotation="12"
-                android:text="@string/label_delete"
-                android:textColor="@color/accent_delete"
-                android:textSize="28sp"
-                android:textStyle="bold" />
+                android:background="@drawable/bg_action_ghost"
+                android:padding="14dp"
+                android:rotation="10"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_action_delete" />
         </FrameLayout>
     </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

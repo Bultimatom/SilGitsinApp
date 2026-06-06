@@ -11,6 +11,7 @@ public class ReviewStore {
     private static final String KEY_REVIEWED_IDS = "reviewed_ids";
     private static final String KEY_TOTAL_KEPT = "total_kept";
     private static final String KEY_TOTAL_DELETED = "total_deleted";
+    private static final String KEY_FAVORITE_IDS = "favorite_ids";
 
     private final SharedPreferences prefs;
 
@@ -64,5 +65,25 @@ public class ReviewStore {
 
     public void resetReviewedPhotos() {
         prefs.edit().remove(KEY_REVIEWED_IDS).apply();
+    }
+
+    public Set<String> getFavoriteIds() {
+        return new HashSet<>(prefs.getStringSet(KEY_FAVORITE_IDS, new HashSet<>()));
+    }
+
+    public void addFavorite(long photoId) {
+        Set<String> ids = getFavoriteIds();
+        ids.add(String.valueOf(photoId));
+        prefs.edit().putStringSet(KEY_FAVORITE_IDS, ids).apply();
+    }
+
+    public void removeFavorite(long photoId) {
+        Set<String> ids = getFavoriteIds();
+        ids.remove(String.valueOf(photoId));
+        prefs.edit().putStringSet(KEY_FAVORITE_IDS, ids).apply();
+    }
+
+    public int getFavoriteCount() {
+        return getFavoriteIds().size();
     }
 }

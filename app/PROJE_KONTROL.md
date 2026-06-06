@@ -1,4 +1,4 @@
-# Swipe Galeri Proje Kontrolu
+# Kaydır Gitsin Proje Kontrolü
 
 ## Hocanin istedikleri
 

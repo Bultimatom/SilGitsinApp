@@ -7,6 +7,20 @@
     android:layout_height="match_parent"
     android:background="@color/bg_primary">
 
+    <ImageButton
+        android:id="@+id/btnHomeTheme"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="18dp"
+        android:layout_marginEnd="22dp"
+        android:background="@drawable/bg_button_circle"
+        android:contentDescription="Tema"
+        android:padding="10dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_action_moon"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <LinearLayout
         android:id="@+id/homeContent"
         android:layout_width="0dp"
@@ -18,11 +32,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
+        <ImageView
+            android:layout_width="86dp"
+            android:layout_height="86dp"
+            android:contentDescription="@string/app_name"
+            android:scaleType="fitCenter"
+            android:src="@drawable/kaydir_gitsin_logo_clean_small" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:letterSpacing="0.08"
-            android:text="SWIPE GALERI"
+            android:layout_marginTop="12dp"
+            android:text="KAYDIR GİTSİN"
             android:textColor="@color/accent_keep"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -41,7 +62,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:lineSpacingExtra="4dp"
-            android:text="Sağa kaydırınca fotoğraf saklanır, sola kaydırınca silinir. İncelediğin fotoğraflar tekrar karşına çıkmaz."
+            android:text="Sağa kaydır: sakla. Sola kaydır: silme listesine al. Tur bitince tek onayla temizle."
             android:textColor="@color/text_secondary"
             android:textSize="15sp" />
 
@@ -78,7 +99,7 @@
                 android:layout_width="0dp"
                 android:layout_height="52dp"
                 android:layout_weight="1"
-                android:text="Nasıl Kullanılır"
+                android:text="Kısa Rehber"
                 android:textColor="@color/text_primary"
                 app:cornerRadius="14dp"
                 app:strokeColor="@color/bg_surface" />

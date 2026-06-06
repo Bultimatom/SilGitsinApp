@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="bg_primary">#101411</color>
+    <color name="bg_card">#1B211D</color>
+    <color name="bg_surface">#2B332D</color>
+    <color name="accent_keep">#3FE08F</color>
+    <color name="accent_delete">#FF6B72</color>
+    <color name="accent_warm">#FFD166</color>
+    <color name="text_primary">#F5F7F3</color>
+    <color name="text_secondary">#AEB9B1</color>
+    <color name="overlay_keep">#4D3FE08F</color>
+    <color name="overlay_delete">#4DFF6B72</color>
+    <color name="onboarding_scrim">#B3000000</color>
+    <color name="button_bg">#202820</color>
+</resources>

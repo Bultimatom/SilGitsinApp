@@ -2,14 +2,17 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="bg_primary">#0D0D0F</color>
-    <color name="bg_card">#1A1A1F</color>
-    <color name="bg_surface">#252528</color>
-    <color name="accent_keep">#00E676</color>
-    <color name="accent_delete">#FF1744</color>
-    <color name="text_primary">#F5F5F7</color>
-    <color name="text_secondary">#8E8E93</color>
-    <color name="overlay_keep">#4D00E676</color>
-    <color name="overlay_delete">#4DFF1744</color>
-    <color name="button_bg">#252528</color>
+    <color name="bg_primary">#F7F9F6</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="bg_surface">#E5EBE3</color>
+    <color name="accent_keep">#19B77A</color>
+    <color name="accent_delete">#F05A5F</color>
+    <color name="accent_warm">#FFC857</color>
+    <color name="text_primary">#17211B</color>
+    <color name="text_secondary">#66756C</color>
+    <color name="overlay_keep">#3319B77A</color>
+    <color name="overlay_delete">#33F05A5F</color>
+    <color name="onboarding_scrim">#99000000</color>
+    <color name="button_bg">#FFFFFF</color>
+    <color name="logo_icon_bg">#FFFFFF</color>
 </resources>

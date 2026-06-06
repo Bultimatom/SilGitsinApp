@@ -19,6 +19,7 @@ public class StatsActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        AppPreferences.applyTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_stats);
         reviewStore = new ReviewStore(this);
