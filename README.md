@@ -148,5 +148,23 @@ Bu proje MIT lisansı ile yayınlanmıştır. Ayrıntılar için [LICENSE](LICEN
 
 ## Geliştirici
 
-Ömer Uzunsoy BTV
+<p align="center">
+  <strong>Ömer Uzunsoy &amp; Can Demir (CDEX)</strong>
+</p>
 
+<table align="center">
+  <tr>
+    <td align="center">
+      <a href="https://www.instagram.com/omer_uzunsoy55/">
+        <img src="assets/omer-uzunsoy.jpg" alt="Ömer Uzunsoy" width="220" /><br />
+        <strong>Ömer Uzunsoy</strong>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://www.instagram.com/canddmir/">
+        <img src="assets/can-demir-cdex.jpg" alt="Can Demir (CDEX)" width="220" /><br />
+        <strong>Can Demir (CDEX)</strong>
+      </a>
+    </td>
+  </tr>
+</table>
