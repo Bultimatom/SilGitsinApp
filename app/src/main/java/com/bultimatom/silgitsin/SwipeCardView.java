@@ -3,8 +3,6 @@ package com.bultimatom.silgitsin;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.media.MediaMetadataRetriever;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -276,14 +274,9 @@ public class SwipeCardView extends FrameLayout {
         image.setScaleType(ImageView.ScaleType.FIT_CENTER);
         backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         videoBadge.setVisibility(photo.isVideo() ? VISIBLE : GONE);
-        if (photo.isVideo()) {
-            Bitmap frame = createVideoFrame(photo);
-            image.setImageBitmap(frame);
-            backdrop.setImageBitmap(frame);
-        } else {
-            image.setImageURI(photo.getUri());
-            backdrop.setImageURI(photo.getUri());
-        }
+        android.graphics.Bitmap thumbnail = MediaThumbnailLoader.load(getContext(), photo, 900, 1200);
+        image.setImageBitmap(thumbnail);
+        backdrop.setImageBitmap(thumbnail);
         String context = photo.getContextLabel();
         if (context == null || context.trim().isEmpty()) {
             name.setText("");
@@ -293,22 +286,6 @@ public class SwipeCardView extends FrameLayout {
             card.findViewById(R.id.layoutPhotoInfo).setVisibility(VISIBLE);
             name.setText(context);
             date.setText((photo.isVideo() ? "Video · " : "") + photo.getReadableSize());
-        }
-    }
-
-    @Nullable
-    private Bitmap createVideoFrame(PhotoItem photo) {
-        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-        try {
-            retriever.setDataSource(getContext(), photo.getUri());
-            return retriever.getFrameAtTime(0);
-        } catch (RuntimeException exception) {
-            return null;
-        } finally {
-            try {
-                retriever.release();
-            } catch (Exception ignored) {
-            }
         }
     }
 

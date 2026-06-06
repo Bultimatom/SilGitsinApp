@@ -12,18 +12,21 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="46dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <ImageButton
                 android:id="@+id/btnStatsBack"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
                 android:background="@drawable/bg_button_circle"
                 android:contentDescription="Geri"
                 android:padding="10dp"
@@ -32,54 +35,180 @@
                 app:tint="@color/text_primary" />
 
             <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="12dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="10dp"
                 android:contentDescription="@string/app_name"
                 android:scaleType="fitCenter"
                 android:src="@drawable/sil_gitsin_logo_clean_small" />
+
+            <TextView
+                android:id="@+id/tvStatsNotice"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_app_notice"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp"
+                android:visibility="gone" />
         </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="12dp"
             android:text="Temizlik Özeti"
             android:textColor="@color/text_primary"
-            android:textSize="30sp"
+            android:textSize="26sp"
             android:textStyle="bold" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:orientation="vertical">
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_stat_panel"
+            android:orientation="vertical"
+            android:padding="14dp">
 
-            <LinearLayout
+            <TextView
                 android:layout_width="match_parent"
-                android:layout_height="118dp"
-                android:orientation="horizontal">
+                android:layout_height="wrap_content"
+                android:text="Toplam kazanılan alan"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:textStyle="bold" />
 
-                <include layout="@layout/view_stat_reviewed" />
-                <include layout="@layout/view_stat_deleted" />
-            </LinearLayout>
-
-            <LinearLayout
+            <TextView
+                android:id="@+id/tvStatSaved"
                 android:layout_width="match_parent"
-                android:layout_height="118dp"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal">
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="0.0 MB"
+                android:textColor="@color/accent_keep"
+                android:textSize="34sp"
+                android:textStyle="bold" />
 
-                <include layout="@layout/view_stat_kept" />
-                <include layout="@layout/view_stat_total" />
-            </LinearLayout>
+            <ProgressBar
+                android:id="@+id/statSavedProgress"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="8dp"
+                android:max="100"
+                android:progress="0"
+                android:progressBackgroundTint="@color/bg_surface"
+                android:progressTint="@color/accent_keep" />
+
+            <TextView
+                android:id="@+id/tvStatImpact"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:ellipsize="end"
+                android:lineSpacingExtra="2dp"
+                android:maxLines="2"
+                android:text="Henüz alan kazanımı yok. Sola kaydırıp silmeyi onayladığında burada birikir."
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
         </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="92dp"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+
+            <include layout="@layout/view_stat_deleted" />
+            <include layout="@layout/view_stat_kept" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="92dp"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="5dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_info_panel"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="10dp">
+
+                <TextView
+                    android:id="@+id/tvStatFavorite"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/accent_warm"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Favori"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <include layout="@layout/view_stat_total" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="78dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_info_panel"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <TextView
+                android:id="@+id/tvStatReviewed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/text_primary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Tekrar gösterilmeyecek medya"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvStatHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_app_notice"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:padding="10dp"
+            android:text="Ana ekrandaki MB kartına dokunarak bu özete dönebilirsin."
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnStatsClean"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="28dp"
+            android:layout_height="52dp"
+            android:layout_marginTop="14dp"
             android:backgroundTint="@color/accent_keep"
             android:text="Temizliğe Devam Et"
             android:textColor="@color/bg_primary"
@@ -90,9 +219,9 @@
             android:id="@+id/btnResetReviewed"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="12dp"
-            android:text="İncelenenleri Sıfırla"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:text="İncelenenleri Unut"
             android:textColor="@color/text_primary"
             app:cornerRadius="14dp"
             app:strokeColor="@color/bg_surface" />

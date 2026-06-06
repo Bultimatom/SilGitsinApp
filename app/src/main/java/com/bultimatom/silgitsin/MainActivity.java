@@ -4,10 +4,8 @@ import android.Manifest;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,9 +22,11 @@ import android.widget.GridLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.MediaController;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.VideoView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private TextView tvSavedMb;
     private TextView tvScoreCaption;
     private TextView tvStreakLabel;
+    private View layoutScore;
     private TextView tvHintTitle;
     private TextView tvHintBody;
     private TextView tvNoticeIcon;
@@ -161,6 +162,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private void bindViews() {
         swipeCardView = findViewById(R.id.swipeCardView);
         layoutEmpty = findViewById(R.id.layoutEmpty);
+        layoutScore = findViewById(R.id.layoutScore);
         tvSavedMb = findViewById(R.id.tvSavedMb);
         tvScoreCaption = findViewById(R.id.tvScoreCaption);
         tvStreakLabel = findViewById(R.id.tvStreakLabel);
@@ -218,6 +220,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         swipeCardView.setSwipeListener(this);
         updateCollectionButton();
         updateThemeButton();
+        layoutScore.setOnClickListener(view -> startActivity(new Intent(this, StatsActivity.class)));
         btnTheme.setOnClickListener(view -> {
             animateButton(btnTheme);
             AppPreferences.setDarkMode(this, !AppPreferences.isDarkMode(this));
@@ -652,14 +655,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
 
     private void showPhotoPreview(PhotoItem photo) {
         if (photo.isVideo()) {
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(photo.getUri(), "video/*");
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            try {
-                startActivity(Intent.createChooser(intent, "Videoyu ac"));
-            } catch (RuntimeException exception) {
-                showToast("Video acilamadi");
-            }
+            showVideoPreview(photo);
             return;
         }
 
@@ -671,7 +667,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         container.setPadding(0, 0, 0, 0);
 
         ImageView imageView = new ImageView(this);
-        imageView.setImageURI(photo.getUri());
+        imageView.setImageBitmap(MediaThumbnailLoader.load(this, photo, 1600, 2200));
         imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
         imageView.setAdjustViewBounds(true);
         imageView.setContentDescription(photo.getDisplayName());
@@ -705,6 +701,59 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         Window shownWindow = dialog.getWindow();
         if (shownWindow != null) {
             shownWindow.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
+        }
+    }
+
+    private void showVideoPreview(PhotoItem photo) {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+        FrameLayout container = new FrameLayout(this);
+        container.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
+
+        VideoView videoView = new VideoView(this);
+        videoView.setVideoURI(photo.getUri());
+        videoView.setContentDescription(photo.getDisplayName());
+        container.addView(videoView, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+
+        MediaController mediaController = new MediaController(this);
+        mediaController.setAnchorView(videoView);
+        videoView.setMediaController(mediaController);
+        videoView.setOnPreparedListener(player -> {
+            player.setLooping(false);
+            videoView.start();
+            mediaController.show(2500);
+        });
+        videoView.setOnErrorListener((player, what, extra) -> {
+            showToast("Video uygulama içinde oynatılamadı");
+            dialog.dismiss();
+            return true;
+        });
+
+        TextView closeHint = new TextView(this);
+        closeHint.setText("Kapat");
+        closeHint.setTextColor(ContextCompat.getColor(this, R.color.white));
+        closeHint.setTextSize(14f);
+        closeHint.setPadding(dpToPx(14), dpToPx(10), dpToPx(14), dpToPx(10));
+        closeHint.setBackgroundColor(0x66000000);
+        closeHint.setOnClickListener(view -> dialog.dismiss());
+        FrameLayout.LayoutParams hintParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+        );
+        hintParams.setMargins(dpToPx(18), dpToPx(42), dpToPx(18), dpToPx(18));
+        container.addView(closeHint, hintParams);
+
+        dialog.setOnDismissListener(view -> videoView.stopPlayback());
+        dialog.setContentView(container);
+        dialog.show();
+        Window shownWindow = dialog.getWindow();
+        if (shownWindow != null) {
+            shownWindow.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
+            shownWindow.setBackgroundDrawableResource(android.R.color.black);
         }
     }
 
@@ -848,7 +897,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
 
         for (PhotoItem photo : queuedDeletePhotos) {
             ImageView imageView = new ImageView(this);
-            imageView.setImageURI(photo.getUri());
+            imageView.setImageBitmap(MediaThumbnailLoader.load(this, photo, 320, 320));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             imageView.setBackgroundColor(ContextCompat.getColor(this, R.color.bg_card));
             imageView.setContentDescription(photo.getDisplayName());
@@ -956,11 +1005,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
             cell.setBackgroundColor(ContextCompat.getColor(this, R.color.bg_card));
 
             ImageView imageView = new ImageView(this);
-            if (item.isVideo()) {
-                imageView.setImageBitmap(createVideoFrame(item));
-            } else {
-                imageView.setImageURI(item.getUri());
-            }
+            imageView.setImageBitmap(MediaThumbnailLoader.load(this, item, 320, 320));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             imageView.setContentDescription(item.getDisplayName());
             cell.addView(imageView, new FrameLayout.LayoutParams(
@@ -1002,21 +1047,6 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         }
     }
 
-    private Bitmap createVideoFrame(PhotoItem item) {
-        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-        try {
-            retriever.setDataSource(this, item.getUri());
-            return retriever.getFrameAtTime(0);
-        } catch (RuntimeException exception) {
-            return null;
-        } finally {
-            try {
-                retriever.release();
-            } catch (Exception ignored) {
-            }
-        }
-    }
-
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
     }
@@ -1024,9 +1054,12 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private void onBatchDeleteConfirmed() {
         editingDeleteList = false;
         int count = queuedDeletePhotos.size();
+        long confirmedSavedBytes = 0L;
         for (PhotoItem photo : queuedDeletePhotos) {
+            confirmedSavedBytes += Math.max(photo.getSize(), 0L);
             reviewStore.removeFavorite(photo.getId());
         }
+        reviewStore.addSavedBytes(confirmedSavedBytes);
         for (int i = 0; i < count; i++) {
             reviewStore.addDeleted();
         }

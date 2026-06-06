@@ -1,15 +1,17 @@
 package com.bultimatom.silgitsin;
 
-import android.content.Intent;
-import android.graphics.Bitmap;
-import android.media.MediaMetadataRetriever;
+import android.app.Dialog;
 import android.os.Bundle;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.MediaController;
 import android.widget.TextView;
+import android.widget.VideoView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -64,15 +66,11 @@ public class FavoritesActivity extends AppCompatActivity {
             FrameLayout cell = new FrameLayout(this);
 
             ImageView imageView = new ImageView(this);
-            if (photo.isVideo()) {
-                imageView.setImageBitmap(createVideoFrame(photo));
-            } else {
-                imageView.setImageURI(photo.getUri());
-            }
+            imageView.setImageBitmap(MediaThumbnailLoader.load(this, photo, 420, 420));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             imageView.setBackgroundColor(ContextCompat.getColor(this, R.color.bg_surface));
             imageView.setContentDescription(photo.getDisplayName());
-            imageView.setOnClickListener(view -> openInGallery(photo));
+            imageView.setOnClickListener(view -> showPreview(photo));
             cell.addView(imageView, new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.MATCH_PARENT
@@ -104,25 +102,75 @@ public class FavoritesActivity extends AppCompatActivity {
         }
     }
 
-    private void openInGallery(PhotoItem photo) {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(photo.getUri(), photo.isVideo() ? "video/*" : "image/*");
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivity(Intent.createChooser(intent, "Galeride goster"));
+    private void showPreview(PhotoItem photo) {
+        if (photo.isVideo()) {
+            showVideoPreview(photo);
+            return;
+        }
+
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        ImageView imageView = new ImageView(this);
+        imageView.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
+        imageView.setImageBitmap(MediaThumbnailLoader.load(this, photo, 1600, 2200));
+        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        imageView.setContentDescription(photo.getDisplayName());
+        imageView.setOnClickListener(view -> dialog.dismiss());
+        dialog.setContentView(imageView);
+        dialog.show();
+        Window shownWindow = dialog.getWindow();
+        if (shownWindow != null) {
+            shownWindow.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
+            shownWindow.setBackgroundDrawableResource(android.R.color.black);
+        }
     }
 
-    private Bitmap createVideoFrame(PhotoItem photo) {
-        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-        try {
-            retriever.setDataSource(this, photo.getUri());
-            return retriever.getFrameAtTime(0);
-        } catch (RuntimeException exception) {
-            return null;
-        } finally {
-            try {
-                retriever.release();
-            } catch (Exception ignored) {
-            }
+    private void showVideoPreview(PhotoItem photo) {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        FrameLayout container = new FrameLayout(this);
+        container.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
+
+        VideoView videoView = new VideoView(this);
+        videoView.setVideoURI(photo.getUri());
+        container.addView(videoView, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+
+        MediaController mediaController = new MediaController(this);
+        mediaController.setAnchorView(videoView);
+        videoView.setMediaController(mediaController);
+        videoView.setOnPreparedListener(player -> {
+            videoView.start();
+            mediaController.show(2500);
+        });
+        videoView.setOnErrorListener((player, what, extra) -> {
+            dialog.dismiss();
+            return true;
+        });
+
+        TextView closeHint = new TextView(this);
+        closeHint.setText("Kapat");
+        closeHint.setTextColor(ContextCompat.getColor(this, R.color.white));
+        closeHint.setTextSize(14f);
+        closeHint.setPadding(dpToPx(14), dpToPx(10), dpToPx(14), dpToPx(10));
+        closeHint.setBackgroundColor(0x66000000);
+        closeHint.setOnClickListener(view -> dialog.dismiss());
+        FrameLayout.LayoutParams hintParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+        );
+        hintParams.setMargins(dpToPx(18), dpToPx(42), dpToPx(18), dpToPx(18));
+        container.addView(closeHint, hintParams);
+
+        dialog.setOnDismissListener(view -> videoView.stopPlayback());
+        dialog.setContentView(container);
+        dialog.show();
+        Window shownWindow = dialog.getWindow();
+        if (shownWindow != null) {
+            shownWindow.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
+            shownWindow.setBackgroundDrawableResource(android.R.color.black);
         }
     }
 
