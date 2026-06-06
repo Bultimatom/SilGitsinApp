@@ -31,6 +31,7 @@ import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -69,7 +70,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private ImageButton btnKeep;
     private ImageButton btnFavorite;
     private ImageButton btnCollection;
-    private TextView btnSettings;
+    private ImageButton btnSettings;
     private ImageButton btnTheme;
     private TextView btnSecondaryAction;
     private TextView btnReviewSelected;
@@ -79,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private View onboardingKeepLabel;
     private View onboardingDeleteLabel;
     private View onboardingFavoriteButton;
+    private View onboardingFinger;
     private View onboardingUndoButton;
     private View onboardingKeepButton;
     private View onboardingDeleteButton;
@@ -134,6 +136,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        AppPreferences.promotePendingThemeOnce(this);
         AppPreferences.applyTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -187,6 +190,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         onboardingKeepLabel = findViewById(R.id.onboardingKeepLabel);
         onboardingDeleteLabel = findViewById(R.id.onboardingDeleteLabel);
         onboardingFavoriteButton = findViewById(R.id.onboardingFavoriteButton);
+        onboardingFinger = findViewById(R.id.onboardingFinger);
         onboardingUndoButton = findViewById(R.id.onboardingUndoButton);
         onboardingKeepButton = findViewById(R.id.onboardingKeepButton);
         onboardingDeleteButton = findViewById(R.id.onboardingDeleteButton);
@@ -287,7 +291,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         String[] titles = {
                 "Sağa kaydır",
                 "Sola kaydır",
-                "Favoriler burada",
+                "Çift dokun: favori",
                 "Geri al",
                 "Seçilenleri incele",
                 "Silme en sonda"
@@ -295,7 +299,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         String[] bodies = {
                 "Fotoğraf sağa giderse tutulur ve sıradaki karta geçilir.",
                 "Fotoğraf sola giderse silinecekler listesine eklenir; hemen silinmez.",
-                "Kalp butonu fotoğrafı favorilere ekler. Favorilerine üstteki kalpten ulaşırsın.",
+                "Fotoğrafa iki kez dokunarak favorilere ekleyebilirsin. Üstteki kalp favorilerini açar.",
                 "Yanlış kaydırırsan geri al butonu son işlemi geri getirir.",
                 "Sola kaydırınca kartın üstünde seçilenler barı çıkar. Hepsini bitirmeden oradan listeye girebilirsin.",
                 "Silme işlemi, seçilenler ekranındaki son Android onayından sonra gerçekleşir."
@@ -316,7 +320,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         } else if (onboardingStep == 1) {
             showSwipeAnimation(false);
         } else if (onboardingStep == 2) {
-            pulseOnboardingView(onboardingFavoriteButton);
+            showDoubleTapFavoriteAnimation();
         } else if (onboardingStep == 3) {
             showUndoAnimation();
         } else if (onboardingStep == 4) {
@@ -347,6 +351,61 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
                         .rotation(0f)
                         .setStartDelay(180L)
                         .setDuration(420L)
+                        .setInterpolator(new OvershootInterpolator(0.8f))
+                        .start())
+                .start();
+    }
+
+    private void showDoubleTapFavoriteAnimation() {
+        onboardingFinger.setVisibility(View.VISIBLE);
+        onboardingFinger.setAlpha(0f);
+        onboardingFinger.setScaleX(1f);
+        onboardingFinger.setScaleY(1f);
+        onboardingFinger.setTranslationY(dpToPx(22));
+        onboardingFinger.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(220L)
+                .setInterpolator(new DecelerateInterpolator())
+                .withEndAction(() -> tapOnboardingFinger(0))
+                .start();
+    }
+
+    private void tapOnboardingFinger(int tapCount) {
+        if (onboardingStep != 2) {
+            return;
+        }
+        if (tapCount >= 2) {
+            pulseOnboardingView(onboardingFavoriteButton);
+            return;
+        }
+        animateOnboardingCardTap();
+        onboardingFinger.animate()
+                .scaleX(0.78f)
+                .scaleY(0.78f)
+                .setDuration(130L)
+                .withEndAction(() -> onboardingFinger.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(150L)
+                        .setInterpolator(new OvershootInterpolator(0.8f))
+                        .withEndAction(() -> onboardingFinger.postDelayed(
+                                () -> tapOnboardingFinger(tapCount + 1),
+                                tapCount == 0 ? 160L : 0L
+                        ))
+                        .start())
+                .start();
+    }
+
+    private void animateOnboardingCardTap() {
+        onboardingDemoCard.animate()
+                .scaleX(0.96f)
+                .scaleY(0.96f)
+                .setDuration(110L)
+                .withEndAction(() -> onboardingDemoCard.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(150L)
                         .setInterpolator(new OvershootInterpolator(0.8f))
                         .start())
                 .start();
@@ -399,6 +458,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         View[] views = {
                 onboardingDemoCard,
                 onboardingFavoriteButton,
+                onboardingFinger,
                 onboardingUndoButton,
                 onboardingKeepButton,
                 onboardingDeleteButton,
@@ -413,6 +473,8 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         onboardingDemoCard.setTranslationX(0f);
         onboardingDemoCard.setTranslationY(0f);
         onboardingDemoCard.setRotation(0f);
+        onboardingFinger.setVisibility(View.GONE);
+        onboardingFinger.setTranslationY(0f);
         onboardingKeepLabel.animate().cancel();
         onboardingDeleteLabel.animate().cancel();
         onboardingKeepLabel.setVisibility(View.GONE);
@@ -462,6 +524,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         btnReviewSelected.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.GONE);
         swipeCardView.setVisibility(View.VISIBLE);
+        btnFavorite.setVisibility(View.VISIBLE);
 
         new Thread(() -> {
             List<PhotoItem> loadedPhotos = mediaRepository.loadShuffledPhotos(reviewStore.getReviewedIds());
@@ -472,12 +535,15 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
                 duplicateGroupIndex = 0;
                 duplicateGroups.clear();
                 duplicateGroups.addAll(findDuplicateGroups(loadedPhotos));
-                queuedDeletePhotos.clear();
                 undoStack.clear();
                 updateStats();
 
                 if (photos.isEmpty()) {
-                    showEmptyGallery();
+                    if (queuedDeletePhotos.isEmpty()) {
+                        showEmptyGallery();
+                    } else {
+                        showAllDone();
+                    }
                 } else if (!duplicateGroups.isEmpty()) {
                     showDuplicateGroup();
                 } else {
@@ -497,6 +563,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
 
         layoutEmpty.setVisibility(View.GONE);
         swipeCardView.setVisibility(View.VISIBLE);
+        btnFavorite.setVisibility(View.VISIBLE);
         updateReviewSelectedButton();
         PhotoItem current = photos.get(currentIndex);
         PhotoItem next = currentIndex + 1 < photos.size() ? photos.get(currentIndex + 1) : null;
@@ -647,11 +714,43 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
             return;
         }
 
+        if (hasFavoriteInDeleteQueue()) {
+            showFavoriteDeleteWarning();
+            return;
+        }
+
+        requestQueuedDelete();
+    }
+
+    private void requestQueuedDelete() {
+        if (queuedDeletePhotos.isEmpty()) {
+            restartCleaning();
+            return;
+        }
+
         editingDeleteList = false;
         boolean deletedImmediately = MediaDeleteHelper.requestDelete(this, queuedDeletePhotos, deleteLauncher);
         if (deletedImmediately) {
             onBatchDeleteConfirmed();
         }
+    }
+
+    private boolean hasFavoriteInDeleteQueue() {
+        for (PhotoItem photo : queuedDeletePhotos) {
+            if (reviewStore.getFavoriteIds().contains(String.valueOf(photo.getId()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void showFavoriteDeleteWarning() {
+        new AlertDialog.Builder(this)
+                .setTitle("Favoriler de silinecek")
+                .setMessage("Silme listesinde favorilere eklediğin fotoğraflar var. Devam edersen galeriden silinir ve favorilerden de kaldırılır.")
+                .setNegativeButton("Vazgeç", null)
+                .setPositiveButton("Devam Et", (dialog, which) -> requestQueuedDelete())
+                .show();
     }
 
     private void startDeleteReview() {
@@ -663,6 +762,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         editingDeleteList = false;
         swipeCardView.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.VISIBLE);
+        btnFavorite.setVisibility(View.GONE);
         btnReviewSelected.setVisibility(View.GONE);
         layoutEmptyIcon.setVisibility(View.GONE);
         tvEmptyTitle.setText("Silme Onayı");
@@ -691,6 +791,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         btnSecondaryAction.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.GONE);
         swipeCardView.setVisibility(View.VISIBLE);
+        btnFavorite.setVisibility(View.GONE);
         showDeleteEditPhoto();
         showToast("Sağa kaydır: silmeden çıkar, sola kaydır: silineceklerde tut");
     }
@@ -710,6 +811,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
 
         layoutEmpty.setVisibility(View.GONE);
         swipeCardView.setVisibility(View.VISIBLE);
+        btnFavorite.setVisibility(View.GONE);
         PhotoItem current = queuedDeletePhotos.get(currentIndex);
         PhotoItem next = currentIndex + 1 < queuedDeletePhotos.size()
                 ? queuedDeletePhotos.get(currentIndex + 1)
@@ -808,6 +910,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         editingDeleteList = false;
         swipeCardView.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.VISIBLE);
+        btnFavorite.setVisibility(View.GONE);
         btnReviewSelected.setVisibility(View.GONE);
         layoutEmptyIcon.setVisibility(View.GONE);
         scrollDeletePreview.setVisibility(View.VISIBLE);
@@ -921,12 +1024,17 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private void onBatchDeleteConfirmed() {
         editingDeleteList = false;
         int count = queuedDeletePhotos.size();
+        for (PhotoItem photo : queuedDeletePhotos) {
+            reviewStore.removeFavorite(photo.getId());
+        }
         for (int i = 0; i < count; i++) {
             reviewStore.addDeleted();
         }
         queuedDeletePhotos.clear();
         hideDeletePreviewGrid();
         btnSecondaryAction.setVisibility(View.GONE);
+        btnFavorite.setVisibility(View.GONE);
+        updateCollectionButton();
         tvEmptyTitle.setText("Silme tamamlandı");
         tvEmptyDesc.setText(count + " fotoğraf galeriden silindi.\n\nYeni bir temizlik turu başlatabilirsin.");
         btnGrantPermission.setText("Yeniden Başla");
@@ -967,6 +1075,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private void showPermissionUI() {
         swipeCardView.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.VISIBLE);
+        btnFavorite.setVisibility(View.GONE);
         btnReviewSelected.setVisibility(View.GONE);
         hideDeletePreviewGrid();
         btnSecondaryAction.setVisibility(View.GONE);
@@ -979,18 +1088,26 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private void showPermissionDenied() {
         layoutEmpty.setVisibility(View.VISIBLE);
         swipeCardView.setVisibility(View.GONE);
+        btnFavorite.setVisibility(View.GONE);
         btnReviewSelected.setVisibility(View.GONE);
         hideDeletePreviewGrid();
         btnSecondaryAction.setVisibility(View.GONE);
         tvEmptyTitle.setText("İzin Verilmedi");
         tvEmptyDesc.setText("Uygulama galeriye erişemeden çalışamaz. Ayarlardan izin verebilir veya tekrar deneyebilirsin.");
         btnGrantPermission.setText("Tekrar Dene");
-        btnGrantPermission.setOnClickListener(view -> permissionLauncher.launch(requiredPermissions()));
+        btnGrantPermission.setOnClickListener(view -> openAppPermissionSettings());
+    }
+
+    private void openAppPermissionSettings() {
+        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        intent.setData(Uri.parse("package:" + getPackageName()));
+        startActivity(intent);
     }
 
     private void showEmptyGallery() {
         swipeCardView.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.VISIBLE);
+        btnFavorite.setVisibility(View.GONE);
         btnReviewSelected.setVisibility(View.GONE);
         hideDeletePreviewGrid();
         btnSecondaryAction.setVisibility(View.GONE);
@@ -1005,6 +1122,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private void showAllDone() {
         swipeCardView.setVisibility(View.GONE);
         layoutEmpty.setVisibility(View.VISIBLE);
+        btnFavorite.setVisibility(View.GONE);
         btnReviewSelected.setVisibility(View.GONE);
         hideDeletePreviewGrid();
         btnSecondaryAction.setVisibility(View.GONE);
@@ -1232,12 +1350,58 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         content.addView(guide, guideParams);
 
         SwitchMaterial themeSwitch = new SwitchMaterial(this);
-        themeSwitch.setText("Gece modu");
+        themeSwitch.setText("Gece modu (sonraki açılışta)");
         themeSwitch.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
         themeSwitch.setTextSize(15f);
         themeSwitch.setChecked(AppPreferences.isDarkMode(this));
-        themeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> AppPreferences.setDarkMode(this, isChecked));
+        themeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            AppPreferences.setDarkMode(this, isChecked);
+            updateThemeButton();
+            showToast("Tema kaydedildi; temizlik akışın bozulmasın diye sonraki açılışta uygulanacak");
+        });
         content.addView(themeSwitch);
+
+        TextView privacyTitle = new TextView(this);
+        privacyTitle.setText("SSS / Güven");
+        privacyTitle.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        privacyTitle.setTextSize(16f);
+        privacyTitle.setTypeface(privacyTitle.getTypeface(), android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams privacyTitleParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        privacyTitleParams.setMargins(0, dpToPx(18), 0, 0);
+        content.addView(privacyTitle, privacyTitleParams);
+
+        TextView privacyBody = new TextView(this);
+        privacyBody.setText("Fotoğraflarım yükleniyor mu?\nHayır. Fotoğrafların cihazında kalır; uygulama fotoğraflarını bir sunucuya göndermez.\n\nSilme hemen oluyor mu?\nHayır. Sola kaydırılanlar önce listeye alınır. Gerçek silme, seçilenler ekranından sonra Android'in resmi onayıyla yapılır.\n\nTema değişince neden hemen dönmüyor?\nTemizlik ortasında seçilenler ve sayaç kaybolmasın diye tema tercihi kaydedilir, sonraki açılışta uygulanır.\n\nAçık kaynak mı?\nEvet. Kodunu inceleyebilir, nasıl çalıştığını görebilir ve güvenle kullanabilirsin.");
+        privacyBody.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+        privacyBody.setTextSize(14f);
+        privacyBody.setLineSpacing(dpToPx(3), 1f);
+        LinearLayout.LayoutParams privacyBodyParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        privacyBodyParams.setMargins(0, dpToPx(8), 0, 0);
+        content.addView(privacyBody, privacyBodyParams);
+
+        TextView sourceButton = new TextView(this);
+        sourceButton.setText("Açık Kaynak Kodunu Gör");
+        sourceButton.setGravity(android.view.Gravity.CENTER);
+        sourceButton.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        sourceButton.setTextSize(15f);
+        sourceButton.setTypeface(sourceButton.getTypeface(), android.graphics.Typeface.BOLD);
+        sourceButton.setBackgroundResource(R.drawable.bg_action_ghost);
+        sourceButton.setOnClickListener(view -> {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Bultimatom/KaydirGitsinApp"));
+            startActivity(intent);
+        });
+        LinearLayout.LayoutParams sourceParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(52)
+        );
+        sourceParams.setMargins(0, dpToPx(14), 0, 0);
+        content.addView(sourceButton, sourceParams);
 
         TextView appSettings = new TextView(this);
         appSettings.setText("Uygulama izinleri");
@@ -1246,16 +1410,12 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         appSettings.setTextSize(15f);
         appSettings.setTypeface(appSettings.getTypeface(), android.graphics.Typeface.BOLD);
         appSettings.setBackgroundResource(R.drawable.bg_action_ghost);
-        appSettings.setOnClickListener(view -> {
-            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-            intent.setData(android.net.Uri.parse("package:" + getPackageName()));
-            startActivity(intent);
-        });
+        appSettings.setOnClickListener(view -> openAppPermissionSettings());
         LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dpToPx(52)
         );
-        settingsParams.setMargins(0, dpToPx(16), 0, 0);
+        settingsParams.setMargins(0, dpToPx(10), 0, 0);
         content.addView(appSettings, settingsParams);
 
         dialog.setContentView(content);

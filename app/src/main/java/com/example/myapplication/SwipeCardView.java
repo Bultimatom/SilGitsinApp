@@ -268,15 +268,21 @@ public class SwipeCardView extends FrameLayout {
 
     private void loadPhotoIntoCard(View card, PhotoItem photo) {
         ImageView image = card.findViewById(R.id.ivPhoto);
+        ImageView backdrop = card.findViewById(R.id.ivPhotoBackdrop);
         TextView name = card.findViewById(R.id.tvPhotoName);
         TextView date = card.findViewById(R.id.tvPhotoDate);
         TextView videoBadge = card.findViewById(R.id.tvVideoBadge);
 
+        image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         videoBadge.setVisibility(photo.isVideo() ? VISIBLE : GONE);
         if (photo.isVideo()) {
-            image.setImageBitmap(createVideoFrame(photo));
+            Bitmap frame = createVideoFrame(photo);
+            image.setImageBitmap(frame);
+            backdrop.setImageBitmap(frame);
         } else {
             image.setImageURI(photo.getUri());
+            backdrop.setImageURI(photo.getUri());
         }
         String context = photo.getContextLabel();
         if (context == null || context.trim().isEmpty()) {

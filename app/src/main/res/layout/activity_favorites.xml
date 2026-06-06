@@ -14,15 +14,16 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <TextView
+        <ImageButton
             android:id="@+id/btnFavoritesBack"
             android:layout_width="52dp"
             android:layout_height="48dp"
             android:background="@drawable/bg_action_ghost"
-            android:gravity="center"
-            android:text="‹"
-            android:textColor="@color/text_primary"
-            android:textSize="34sp" />
+            android:contentDescription="Geri"
+            android:padding="10dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_back_custom"
+            android:tint="@color/text_primary" />
 
         <ImageView
             android:layout_width="42dp"

@@ -20,15 +20,16 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <TextView
+            <ImageButton
                 android:id="@+id/btnGuideBack"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
                 android:background="@drawable/bg_button_circle"
-                android:gravity="center"
-                android:text="‹"
-                android:textColor="@color/text_primary"
-                android:textSize="30sp" />
+                android:contentDescription="Geri"
+                android:padding="10dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_back_custom"
+                android:tint="@color/text_primary" />
 
             <ImageView
                 android:layout_width="44dp"
