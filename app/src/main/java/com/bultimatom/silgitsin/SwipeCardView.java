@@ -274,7 +274,7 @@ public class SwipeCardView extends FrameLayout {
         image.setScaleType(ImageView.ScaleType.FIT_CENTER);
         backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
         videoBadge.setVisibility(photo.isVideo() ? VISIBLE : GONE);
-        android.graphics.Bitmap thumbnail = MediaThumbnailLoader.load(getContext(), photo, 900, 1200);
+        android.graphics.Bitmap thumbnail = MediaThumbnailLoader.loadForCard(getContext(), photo);
         image.setImageBitmap(thumbnail);
         backdrop.setImageBitmap(thumbnail);
         String context = photo.getContextLabel();

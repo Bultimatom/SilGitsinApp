@@ -667,7 +667,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         container.setPadding(0, 0, 0, 0);
 
         ImageView imageView = new ImageView(this);
-        imageView.setImageBitmap(MediaThumbnailLoader.load(this, photo, 1600, 2200));
+        imageView.setImageBitmap(MediaThumbnailLoader.loadPreview(this, photo));
         imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
         imageView.setAdjustViewBounds(true);
         imageView.setContentDescription(photo.getDisplayName());

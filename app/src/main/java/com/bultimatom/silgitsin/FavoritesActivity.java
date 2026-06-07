@@ -112,7 +112,7 @@ public class FavoritesActivity extends AppCompatActivity {
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         ImageView imageView = new ImageView(this);
         imageView.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
-        imageView.setImageBitmap(MediaThumbnailLoader.load(this, photo, 1600, 2200));
+        imageView.setImageBitmap(MediaThumbnailLoader.loadPreview(this, photo));
         imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
         imageView.setContentDescription(photo.getDisplayName());
         imageView.setOnClickListener(view -> dialog.dismiss());

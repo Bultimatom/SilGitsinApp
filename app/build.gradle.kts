@@ -10,8 +10,8 @@ android {
         applicationId = "com.bultimatom.silgitsin"
         minSdk = 24
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.5"
+        versionCode = 100
+        versionName = "1.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
