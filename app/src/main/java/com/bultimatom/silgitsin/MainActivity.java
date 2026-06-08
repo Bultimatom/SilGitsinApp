@@ -129,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private final ActivityResultLauncher<IntentSenderRequest> deleteLauncher =
             registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK) {
-                    onBatchDeleteConfirmed();
+                    verifyBatchDelete();
                 } else {
                     showToast("Silme iptal edildi");
                 }
@@ -597,7 +597,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         }
 
         undoStack.addLast(new UndoAction(photo, true));
-        reviewStore.markReviewed(photo.getId());
+        reviewStore.markReviewed(photo);
         reviewStore.addKept();
         keptCount++;
         streakCount++;
@@ -616,7 +616,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
 
         queuedDeletePhotos.add(photo);
         undoStack.addLast(new UndoAction(photo, false));
-        reviewStore.markReviewed(photo.getId());
+        reviewStore.markReviewed(photo);
         deletedCount++;
         sessionSavedBytes += Math.max(photo.getSize(), 0L);
         streakCount++;
@@ -666,30 +666,29 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         container.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
         container.setPadding(0, 0, 0, 0);
 
-        ImageView imageView = new ImageView(this);
+        ZoomableImageView imageView = new ZoomableImageView(this);
         imageView.setImageBitmap(MediaThumbnailLoader.loadPreview(this, photo));
-        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        imageView.setAdjustViewBounds(true);
         imageView.setContentDescription(photo.getDisplayName());
         container.addView(imageView, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
         ));
 
-        TextView closeHint = new TextView(this);
-        closeHint.setText("Kapat");
-        closeHint.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
-        closeHint.setTextSize(14f);
-        closeHint.setPadding(24, 18, 24, 18);
-        closeHint.setBackgroundColor(0x66000000);
+        ImageButton closeButton = new ImageButton(this);
+        closeButton.setImageResource(R.drawable.ic_back_custom);
+        closeButton.setColorFilter(ContextCompat.getColor(this, R.color.white));
+        closeButton.setBackgroundColor(Color.TRANSPARENT);
+        closeButton.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
+        closeButton.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        closeButton.setContentDescription("Geri");
         FrameLayout.LayoutParams hintParams = new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
+                dpToPx(48),
+                dpToPx(48)
         );
-        hintParams.setMargins(24, 48, 24, 24);
-        container.addView(closeHint, hintParams);
+        hintParams.setMargins(dpToPx(18), dpToPx(42), dpToPx(18), dpToPx(18));
+        container.addView(closeButton, hintParams);
 
-        container.setOnClickListener(view -> dialog.dismiss());
+        closeButton.setOnClickListener(view -> dialog.dismiss());
         dialog.setContentView(container);
 
         Window window = dialog.getWindow();
@@ -780,13 +779,13 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         editingDeleteList = false;
         boolean deletedImmediately = MediaDeleteHelper.requestDelete(this, queuedDeletePhotos, deleteLauncher);
         if (deletedImmediately) {
-            onBatchDeleteConfirmed();
+            verifyBatchDelete();
         }
     }
 
     private boolean hasFavoriteInDeleteQueue() {
         for (PhotoItem photo : queuedDeletePhotos) {
-            if (reviewStore.getFavoriteIds().contains(String.valueOf(photo.getId()))) {
+            if (reviewStore.isFavorite(photo)) {
                 return true;
             }
         }
@@ -1051,28 +1050,60 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 
-    private void onBatchDeleteConfirmed() {
+    private void verifyBatchDelete() {
+        List<PhotoItem> requestedPhotos = new ArrayList<>(queuedDeletePhotos);
+        new Thread(() -> {
+            List<PhotoItem> deletedPhotos = new ArrayList<>();
+            List<PhotoItem> remainingPhotos = new ArrayList<>();
+            for (PhotoItem photo : requestedPhotos) {
+                if (mediaRepository.exists(photo)) {
+                    remainingPhotos.add(photo);
+                } else {
+                    deletedPhotos.add(photo);
+                }
+            }
+            runOnUiThread(() -> onBatchDeleteVerified(deletedPhotos, remainingPhotos));
+        }).start();
+    }
+
+    private void onBatchDeleteVerified(
+            List<PhotoItem> deletedPhotos,
+            List<PhotoItem> remainingPhotos
+    ) {
         editingDeleteList = false;
-        int count = queuedDeletePhotos.size();
+        int count = deletedPhotos.size();
         long confirmedSavedBytes = 0L;
-        for (PhotoItem photo : queuedDeletePhotos) {
+        for (PhotoItem photo : deletedPhotos) {
             confirmedSavedBytes += Math.max(photo.getSize(), 0L);
-            reviewStore.removeFavorite(photo.getId());
+            reviewStore.removeFavorite(photo);
         }
         reviewStore.addSavedBytes(confirmedSavedBytes);
         for (int i = 0; i < count; i++) {
             reviewStore.addDeleted();
         }
         queuedDeletePhotos.clear();
+        queuedDeletePhotos.addAll(remainingPhotos);
+        deletedCount = remainingPhotos.size();
+        sessionSavedBytes = totalSize(remainingPhotos);
         hideDeletePreviewGrid();
         btnSecondaryAction.setVisibility(View.GONE);
         btnFavorite.setVisibility(View.GONE);
         updateCollectionButton();
-        tvEmptyTitle.setText("Silme tamamlandı");
-        tvEmptyDesc.setText(count + " fotoğraf galeriden silindi.\n\nYeni bir temizlik turu başlatabilirsin.");
-        btnGrantPermission.setText("Yeniden Başla");
-        btnGrantPermission.setOnClickListener(view -> restartCleaning());
-        showToast("Toplu silme tamamlandı");
+        if (remainingPhotos.isEmpty()) {
+            tvEmptyTitle.setText("Silme tamamlandı");
+            tvEmptyDesc.setText(count + " medya cihazdan silindi.\n\n"
+                    + "Google Fotoğraflar'a yedeklenmiş kopyalar bulut kitaplığında görünmeye devam edebilir.");
+            btnGrantPermission.setText("Yeniden Başla");
+            btnGrantPermission.setOnClickListener(view -> restartCleaning());
+            showToast("Toplu silme tamamlandı");
+        } else {
+            tvEmptyTitle.setText("Bazı dosyalar silinemedi");
+            tvEmptyDesc.setText(count + " medya cihazdan silindi, "
+                    + remainingPhotos.size() + " medya hâlâ cihazda. Kalanları yeniden deneyebilirsin.");
+            btnGrantPermission.setText("Kalanları İncele");
+            btnGrantPermission.setOnClickListener(view -> startDeleteReview());
+            showToast("Silinemeyen dosyalar var");
+        }
     }
 
     private void undoLastAction() {
@@ -1091,13 +1122,13 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
             currentIndex--;
             keptCount--;
             reviewStore.removeKept();
-            reviewStore.unmarkReviewed(action.photo.getId());
+            reviewStore.unmarkReviewed(action.photo);
         } else {
             currentIndex--;
             queuedDeletePhotos.remove(action.photo);
             deletedCount--;
             sessionSavedBytes = Math.max(sessionSavedBytes - Math.max(action.photo.getSize(), 0L), 0L);
-            reviewStore.unmarkReviewed(action.photo.getId());
+            reviewStore.unmarkReviewed(action.photo);
         }
         streakCount = Math.max(streakCount - 1, 0);
         updateStats();
@@ -1317,12 +1348,12 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     }
 
     private void toggleFavorite(PhotoItem photo) {
-        boolean isFavorite = reviewStore.getFavoriteIds().contains(String.valueOf(photo.getId()));
+        boolean isFavorite = reviewStore.isFavorite(photo);
         if (isFavorite) {
-            reviewStore.removeFavorite(photo.getId());
+            reviewStore.removeFavorite(photo);
             showToast("Favorilerden cikarildi");
         } else {
-            reviewStore.addFavorite(photo.getId());
+            reviewStore.addFavorite(photo);
             showToast("Favorilere eklendi");
         }
         updateFavoriteButton(photo);
@@ -1333,7 +1364,7 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
         if (btnFavorite == null || reviewStore == null || photo == null) {
             return;
         }
-        boolean isFavorite = reviewStore.getFavoriteIds().contains(String.valueOf(photo.getId()));
+        boolean isFavorite = reviewStore.isFavorite(photo);
         btnFavorite.setImageResource(R.drawable.ic_action_heart);
         btnFavorite.setAlpha(isFavorite ? 1f : 0.72f);
     }

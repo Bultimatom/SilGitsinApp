@@ -1,6 +1,7 @@
 package com.bultimatom.silgitsin;
 
 import android.app.Dialog;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Window;
 import android.view.WindowManager;
@@ -83,7 +84,7 @@ public class FavoritesActivity extends AppCompatActivity {
             removeFavorite.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
             removeFavorite.setContentDescription("Favoriden cikar");
             removeFavorite.setOnClickListener(view -> {
-                reviewStore.removeFavorite(photo.getId());
+                reviewStore.removeFavorite(photo);
                 loadFavorites();
             });
             FrameLayout.LayoutParams heartParams = new FrameLayout.LayoutParams(
@@ -110,13 +111,33 @@ public class FavoritesActivity extends AppCompatActivity {
 
         Dialog dialog = new Dialog(this);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        ImageView imageView = new ImageView(this);
-        imageView.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
+        FrameLayout container = new FrameLayout(this);
+        container.setBackgroundColor(ContextCompat.getColor(this, R.color.black));
+
+        ZoomableImageView imageView = new ZoomableImageView(this);
         imageView.setImageBitmap(MediaThumbnailLoader.loadPreview(this, photo));
-        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
         imageView.setContentDescription(photo.getDisplayName());
-        imageView.setOnClickListener(view -> dialog.dismiss());
-        dialog.setContentView(imageView);
+        container.addView(imageView, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+
+        ImageButton closeButton = new ImageButton(this);
+        closeButton.setImageResource(R.drawable.ic_back_custom);
+        closeButton.setColorFilter(ContextCompat.getColor(this, R.color.white));
+        closeButton.setBackgroundColor(Color.TRANSPARENT);
+        closeButton.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
+        closeButton.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        closeButton.setContentDescription("Geri");
+        closeButton.setOnClickListener(view -> dialog.dismiss());
+        FrameLayout.LayoutParams hintParams = new FrameLayout.LayoutParams(
+                dpToPx(48),
+                dpToPx(48)
+        );
+        hintParams.setMargins(dpToPx(18), dpToPx(42), dpToPx(18), dpToPx(18));
+        container.addView(closeButton, hintParams);
+
+        dialog.setContentView(container);
         dialog.show();
         Window shownWindow = dialog.getWindow();
         if (shownWindow != null) {

@@ -24,15 +24,17 @@ public class ReviewStore {
         return new HashSet<>(prefs.getStringSet(KEY_REVIEWED_IDS, new HashSet<>()));
     }
 
-    public void markReviewed(long photoId) {
+    public void markReviewed(PhotoItem photo) {
         Set<String> ids = getReviewedIds();
-        ids.add(String.valueOf(photoId));
+        ids.add(photo.getStorageKey());
+        ids.remove(String.valueOf(photo.getId()));
         prefs.edit().putStringSet(KEY_REVIEWED_IDS, ids).apply();
     }
 
-    public void unmarkReviewed(long photoId) {
+    public void unmarkReviewed(PhotoItem photo) {
         Set<String> ids = getReviewedIds();
-        ids.remove(String.valueOf(photoId));
+        ids.remove(photo.getStorageKey());
+        ids.remove(String.valueOf(photo.getId()));
         prefs.edit().putStringSet(KEY_REVIEWED_IDS, ids).apply();
     }
 
@@ -83,15 +85,22 @@ public class ReviewStore {
         return new HashSet<>(prefs.getStringSet(KEY_FAVORITE_IDS, new HashSet<>()));
     }
 
-    public void addFavorite(long photoId) {
+    public boolean isFavorite(PhotoItem photo) {
         Set<String> ids = getFavoriteIds();
-        ids.add(String.valueOf(photoId));
+        return ids.contains(photo.getStorageKey()) || ids.contains(String.valueOf(photo.getId()));
+    }
+
+    public void addFavorite(PhotoItem photo) {
+        Set<String> ids = getFavoriteIds();
+        ids.add(photo.getStorageKey());
+        ids.remove(String.valueOf(photo.getId()));
         prefs.edit().putStringSet(KEY_FAVORITE_IDS, ids).apply();
     }
 
-    public void removeFavorite(long photoId) {
+    public void removeFavorite(PhotoItem photo) {
         Set<String> ids = getFavoriteIds();
-        ids.remove(String.valueOf(photoId));
+        ids.remove(photo.getStorageKey());
+        ids.remove(String.valueOf(photo.getId()));
         prefs.edit().putStringSet(KEY_FAVORITE_IDS, ids).apply();
     }
 

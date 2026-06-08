@@ -59,6 +59,10 @@ public class PhotoItem {
         return video;
     }
 
+    public String getStorageKey() {
+        return uri.toString();
+    }
+
     public String getDuplicateKey() {
         return displayName.toLowerCase(Locale.ROOT).trim() + "|" + size + "|" + video;
     }

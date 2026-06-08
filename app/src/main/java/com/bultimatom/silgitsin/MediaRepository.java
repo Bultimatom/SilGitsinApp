@@ -3,10 +3,12 @@ package com.bultimatom.silgitsin;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.MediaStore;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -23,7 +25,8 @@ public class MediaRepository {
 
     public List<PhotoItem> loadShuffledPhotos(Set<String> skippedIds) {
         List<PhotoItem> media = loadAllMedia();
-        media.removeIf(item -> skippedIds.contains(String.valueOf(item.getId())));
+        media.removeIf(item -> skippedIds.contains(item.getStorageKey())
+                || skippedIds.contains(String.valueOf(item.getId())));
         Collections.shuffle(media);
         return media;
     }
@@ -31,11 +34,25 @@ public class MediaRepository {
     public List<PhotoItem> loadPhotosByIds(Set<String> ids) {
         List<PhotoItem> selectedPhotos = new ArrayList<>();
         for (PhotoItem photo : loadAllMedia()) {
-            if (ids.contains(String.valueOf(photo.getId()))) {
+            if (ids.contains(photo.getStorageKey()) || ids.contains(String.valueOf(photo.getId()))) {
                 selectedPhotos.add(photo);
             }
         }
         return selectedPhotos;
+    }
+
+    public boolean exists(PhotoItem photo) {
+        try (Cursor cursor = context.getContentResolver().query(
+                photo.getUri(),
+                new String[] { MediaStore.MediaColumns._ID },
+                null,
+                null,
+                null
+        )) {
+            return cursor != null && cursor.moveToFirst();
+        } catch (Exception ignored) {
+            return true;
+        }
     }
 
     private List<PhotoItem> loadAllMedia() {
@@ -61,6 +78,8 @@ public class MediaRepository {
                 true
         ));
         media.sort((left, right) -> Long.compare(right.getDateModified(), left.getDateModified()));
+        Set<String> seenUris = new HashSet<>();
+        media.removeIf(item -> !seenUris.add(item.getStorageKey()));
         return media;
     }
 
@@ -83,8 +102,16 @@ public class MediaRepository {
         };
         List<PhotoItem> items = new ArrayList<>();
 
+        String selection = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            selection = MediaStore.MediaColumns.IS_PENDING + " = 0 AND "
+                    + MediaStore.MediaColumns.IS_TRASHED + " = 0";
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            selection = MediaStore.MediaColumns.IS_PENDING + " = 0";
+        }
+
         try (Cursor cursor = context.getContentResolver()
-                .query(collection, projection, null, null, sortOrder)) {
+                .query(collection, projection, selection, null, sortOrder)) {
             if (cursor == null) {
                 return items;
             }
