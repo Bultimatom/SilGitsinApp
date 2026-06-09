@@ -495,19 +495,20 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     }
 
     private void checkPermissions() {
-        boolean allGranted = true;
-        for (String permission : requiredPermissions()) {
-            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                allGranted = false;
-                break;
-            }
-        }
-
-        if (allGranted) {
+        if (hasRequiredPermissions()) {
             loadPhotos();
         } else {
             showPermissionUI();
         }
+    }
+
+    private boolean hasRequiredPermissions() {
+        for (String permission : requiredPermissions()) {
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String[] requiredPermissions() {
@@ -1053,6 +1054,11 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     private void verifyBatchDelete() {
         List<PhotoItem> requestedPhotos = new ArrayList<>(queuedDeletePhotos);
         new Thread(() -> {
+            try {
+                Thread.sleep(500L);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
             List<PhotoItem> deletedPhotos = new ArrayList<>();
             List<PhotoItem> remainingPhotos = new ArrayList<>();
             for (PhotoItem photo : requestedPhotos) {
@@ -1163,9 +1169,14 @@ public class MainActivity extends AppCompatActivity implements SwipeCardView.Swi
     }
 
     private void openAppPermissionSettings() {
-        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-        intent.setData(Uri.parse("package:" + getPackageName()));
-        startActivity(intent);
+        if (!hasRequiredPermissions()) {
+            permissionLauncher.launch(requiredPermissions());
+            return;
+        }
+
+        Intent appDetailsIntent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        appDetailsIntent.setData(Uri.parse("package:" + getPackageName()));
+        startActivity(appDetailsIntent);
     }
 
     private void showEmptyGallery() {

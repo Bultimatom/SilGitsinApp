@@ -42,14 +42,31 @@ public class MediaRepository {
     }
 
     public boolean exists(PhotoItem photo) {
+        String[] projection;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            projection = new String[] {
+                    MediaStore.MediaColumns._ID,
+                    MediaStore.MediaColumns.IS_TRASHED
+            };
+        } else {
+            projection = new String[] { MediaStore.MediaColumns._ID };
+        }
+
         try (Cursor cursor = context.getContentResolver().query(
                 photo.getUri(),
-                new String[] { MediaStore.MediaColumns._ID },
+                projection,
                 null,
                 null,
                 null
         )) {
-            return cursor != null && cursor.moveToFirst();
+            if (cursor == null || !cursor.moveToFirst()) {
+                return false;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                int trashedColumn = cursor.getColumnIndex(MediaStore.MediaColumns.IS_TRASHED);
+                return trashedColumn < 0 || cursor.getInt(trashedColumn) == 0;
+            }
+            return true;
         } catch (Exception ignored) {
             return true;
         }

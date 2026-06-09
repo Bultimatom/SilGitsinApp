@@ -21,7 +21,7 @@ public class SwipeCardView extends FrameLayout {
     private static final float ROTATION_MAX = 14f;
     private static final float SCALE_BACK_CARD = 0.94f;
     private static final float TAP_SLOP = 18f;
-    private static final long ANIM_DURATION = 260L;
+    private static final long ANIM_DURATION = 170L;
 
     public interface SwipeListener {
         void onSwipedRight(PhotoItem photo);
@@ -40,6 +40,7 @@ public class SwipeCardView extends FrameLayout {
     private Runnable pendingSingleTap;
     private SwipeListener listener;
     private boolean isAnimatingSwipe = false;
+    private Boolean queuedSwipeDirection;
 
     public SwipeCardView(@NonNull Context context) {
         this(context, null);
@@ -95,17 +96,19 @@ public class SwipeCardView extends FrameLayout {
     }
 
     private void setupTouchListener() {
-        frontCard.setOnTouchListener((view, event) -> {
+        View.OnTouchListener touchListener = (view, event) -> {
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
+                    downX = event.getRawX();
+                    downY = event.getRawY();
+                    if (!isAnimatingSwipe) {
+                        frontCard.animate().cancel();
+                    }
+                    return true;
+                case MotionEvent.ACTION_MOVE:
                     if (isAnimatingSwipe) {
                         return true;
                     }
-                    downX = event.getRawX();
-                    downY = event.getRawY();
-                    frontCard.animate().cancel();
-                    return true;
-                case MotionEvent.ACTION_MOVE:
                     float dx = event.getRawX() - downX;
                     float dy = event.getRawY() - downY;
                     frontCard.setTranslationX(dx);
@@ -119,15 +122,31 @@ public class SwipeCardView extends FrameLayout {
                     return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
-                    float totalDx = frontCard.getTranslationX();
+                    float gestureDx = event.getRawX() - downX;
                     float totalDy = event.getRawY() - downY;
+                    boolean shouldSwipe = Math.abs(gestureDx) >= swipeThreshold();
+
+                    if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                        if (!isAnimatingSwipe) {
+                            animateBackToCenter();
+                        }
+                        return true;
+                    }
+                    if (isAnimatingSwipe) {
+                        if (shouldSwipe) {
+                            queuedSwipeDirection = gestureDx > 0;
+                        }
+                        return true;
+                    }
+
+                    float totalDx = frontCard.getTranslationX();
                     if (Math.abs(totalDx) < TAP_SLOP && Math.abs(totalDy) < TAP_SLOP) {
                         animateBackToCenter();
                         if (listener != null && currentPhoto != null) {
                             handleTap(currentPhoto);
                         }
-                    } else if (Math.abs(totalDx) >= swipeThreshold()) {
-                        animateFlyOut(totalDx > 0);
+                    } else if (shouldSwipe) {
+                        animateFlyOut(gestureDx > 0);
                     } else {
                         animateBackToCenter();
                     }
@@ -135,7 +154,9 @@ public class SwipeCardView extends FrameLayout {
                 default:
                     return false;
             }
-        });
+        };
+        frontCard.setOnTouchListener(touchListener);
+        backCard.setOnTouchListener(touchListener);
     }
 
     private void handleTap(PhotoItem photo) {
@@ -184,7 +205,6 @@ public class SwipeCardView extends FrameLayout {
         }
 
         isAnimatingSwipe = true;
-        frontCard.setOnTouchListener(null);
         float targetX = toRight ? getWidth() * 1.65f : -getWidth() * 1.65f;
         float targetRotation = toRight ? ROTATION_MAX * 1.8f : -ROTATION_MAX * 1.8f;
 
@@ -198,7 +218,8 @@ public class SwipeCardView extends FrameLayout {
                 .setListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
-                        frontCard.setOnTouchListener(null);
+                        Boolean nextSwipe = queuedSwipeDirection;
+                        queuedSwipeDirection = null;
                         if (listener != null) {
                             if (toRight) {
                                 listener.onSwipedRight(photo);
@@ -206,7 +227,13 @@ public class SwipeCardView extends FrameLayout {
                                 listener.onSwipedLeft(photo);
                             }
                         }
-                        post(() -> setupTouchListener());
+                        if (nextSwipe != null) {
+                            post(() -> {
+                                if (currentPhoto != null && currentPhoto != photo) {
+                                    animateFlyOut(nextSwipe);
+                                }
+                            });
+                        }
                     }
                 })
                 .start();
